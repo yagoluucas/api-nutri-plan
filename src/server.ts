@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
-import { cadastrarAlimentosRouter, recuperarAlimentosRouter } from './modules/alimentos/crudAlimentos.js';
+import { recuperarAlimentosRouter } from './modules/alimentos/buscarAlimento.js';
+import { cadastrarAlimentosRouter } from './modules/alimentos/cadastraAlimento.js';
 
 import cadastrarRefeicoesRoutes from './modules/refeicoes/cadastrarRefeicao.js';
 import cadastrarPlanoRoutes from './modules/planoAlimentar/cadastrarPlano.js';
