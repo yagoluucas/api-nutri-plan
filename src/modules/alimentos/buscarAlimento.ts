@@ -56,16 +56,14 @@ recuperarAlimentosRouter.get('/', async (req, res) => {
     const codigoAlimento = req.query?.codigoAlimento;
     const result = await buscarAlimentoPeloCodigo(codigoAlimento);
 
-    res.status(result.statusCode);
-    return res.json(result);
+    return res.status(result.statusCode).json(result);
 });
 
 recuperarAlimentosRouter.get('/autocomplete', async (req, res) => {
     const nomeAlimento = req.query?.nomeAlimento;
     const result = await buscaAlimentoAutoComplete(nomeAlimento);
 
-    res.status(result.statusCode);
-    return res.json(result);
+    return res.status(result.statusCode).json(result);
 });
 
 export { recuperarAlimentosRouter };
