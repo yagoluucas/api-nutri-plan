@@ -5,4 +5,8 @@ interface IRecuperarAlimentos extends IRetornoApi {
     alimentos?: IAlimento[]
 }
 
-export { IRecuperarAlimentos };
+interface ICadastrarAlimentos extends IRetornoApi {
+    
+}
+
+export { IRecuperarAlimentos, ICadastrarAlimentos };
