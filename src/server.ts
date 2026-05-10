@@ -1,13 +1,13 @@
 import express from 'express';
-import foodsRoutes from './modules/foods/index.js';
+import alimentosRoutes from './modules/alimentos/recuperarAlimento.js';
+import cadastrarRefeicoesRoutes from './modules/refeicoes/cadastrarRefeicao.js';
+import cadastrarPlanoRoutes from './modules/planoAlimentar/cadastrarPlano.js';
 
 const app = express();
 
-app.use("/foods", foodsRoutes)
-
-app.get("/", (req, res) => {
-    return res.send("Funcionando!")
-})
+app.use("/alimentos", alimentosRoutes)
+app.use("/refeicoes", cadastrarRefeicoesRoutes)
+app.use("/planoAlimentar", cadastrarPlanoRoutes)
 
 app.listen(3000, () => {
     console.log("Servidor rodando na porta 3000")
