@@ -1,26 +1,37 @@
-type tipoMedida = "Caseira" | "Tecnica";
+import { z } from "zod";
 
-interface INutriente {
-    nomeComponente: string,
-    valorPor100G: number | null,
-    unidadeUtilizada: string
-}
+const tipoMedidaSchema = z.enum(["Caseira", "Tecnica"]);
+type tipoMedida = z.infer<typeof tipoMedidaSchema>;
 
-interface IMedidasCaseiras {
-    nomeMedida: string,
-    total: number,
-    unidadeMedida: string,
-    tipoMedida: tipoMedida
-}
+const INutrienteSchema = z.object({
+    nomeComponente: z.string(),
+    valorPor100G: z.number().nullable(),
+    unidadeUtilizada: z.string()
+});
+type INutriente = z.infer<typeof INutrienteSchema>;
 
-interface IAlimento {
-    codigoAlimento: string,
-    nomeAlimento: string, 
-    linkAlimento: string,
-    grupo: string | null,
-    marca: string | null,
-    nutrientes: INutriente[],
-    medidasCaseiras: IMedidasCaseiras[]
-}
+const IMedidasCaseirasSchema = z.object({
+    nomeMedida: z.string(),
+    total: z.number(),
+    unidadeMedida: z.string(),
+    tipoMedida: tipoMedidaSchema
+});
+type IMedidasCaseiras = z.infer<typeof IMedidasCaseirasSchema>;
 
-export { INutriente, IMedidasCaseiras, IAlimento, tipoMedida };
+const IAlimentoSchema = z.object({
+    codigoAlimento: z.string(),
+    nomeAlimento: z.string(),
+    linkAlimento: z.string(),
+    grupo: z.string().nullable(),
+    marca: z.string().nullable(),
+    nutrientes: z.array(INutrienteSchema),
+    medidasCaseiras: z.array(IMedidasCaseirasSchema)
+});
+type IAlimento = z.infer<typeof IAlimentoSchema>;
+
+export { 
+    INutrienteSchema, INutriente, 
+    IMedidasCaseirasSchema, IMedidasCaseiras, 
+    IAlimentoSchema, IAlimento, 
+    tipoMedidaSchema, tipoMedida 
+};

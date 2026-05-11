@@ -1,13 +1,19 @@
-import { IAlimento } from "./modelAlimentosInterface.js"
-import { IRetornoApi } from "../generalInterfaces.js";
+import { z } from "zod";
+import { IAlimentoSchema } from "./modelAlimentosInterface.js";
+import { IRetornoApiSchema } from "../generalInterfaces.js";
 
-interface IRecuperarAlimentos extends IRetornoApi {
-    qtdAlimentosEncontrados?: number,
-    alimentos?: IAlimento[]
-}
+const IRecuperarAlimentosSchema = IRetornoApiSchema.extend({
+    qtdAlimentosEncontrados: z.number().optional(),
+    alimentos: z.array(IAlimentoSchema).optional()
+});
 
-interface ICadastrarAlimentos extends IRetornoApi {
+type IRecuperarAlimentos = z.infer<typeof IRecuperarAlimentosSchema>;
 
-}
+const ICadastrarAlimentosSchema = IRetornoApiSchema.extend({});
 
-export { IRecuperarAlimentos, ICadastrarAlimentos };
+type ICadastrarAlimentos = z.infer<typeof ICadastrarAlimentosSchema>;
+
+export { 
+    IRecuperarAlimentosSchema, IRecuperarAlimentos, 
+    ICadastrarAlimentosSchema, ICadastrarAlimentos 
+};
