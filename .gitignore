@@ -3,3 +3,6 @@ node_modules
 bruno.json
 *.bru
 DietPlan-API
+
+# Arquivos de Organização Pessoal
+TODO.md
