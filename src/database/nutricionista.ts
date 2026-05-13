@@ -23,7 +23,7 @@ nutricionistaSchema.index({ crn: 1, unique: 1 })
 // Criação das informações para salvar e checar a asenha
 
 nutricionistaSchema.pre("save", async function () {
-    if (!this.isModified("senhaHash")) return;
+    if (!this.isModified("senha")) return;
 
     const saltRounds = 10;
     this.senha = await bcrypt.hash(this.senha, saltRounds);

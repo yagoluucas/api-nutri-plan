@@ -7,7 +7,7 @@ export async function conectarAoBancoDeDados() {
         return mongoose.connection;
     }
 
-    const uri = process.env.mongodbConnectionString;
+    const uri = process.env.MONGO_DB_CONNECTION_STRING;
 
     if (!uri) {
         throw new Error("mongodbConnectionString não encontrado no arquivo .env!");
@@ -16,7 +16,7 @@ export async function conectarAoBancoDeDados() {
     try {
         // 2. Conecta usando o Mongoose
         await mongoose.connect(uri, {
-            dbName: process.env.mongodbDatabaseName, // Seleciona o banco do .env
+            dbName: process.env.MONGO_DB_DATABASE_NAME, // Seleciona o banco do .env
         });
 
         console.log("Conexão com MongoDB estabelecida com sucesso via Mongoose!");

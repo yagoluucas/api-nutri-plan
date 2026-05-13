@@ -4,6 +4,7 @@ import { Alimento } from '../../database/alimentoModel.js';
 import { isValidString } from '../../utils/utils.js';
 import { IRecuperarAlimentos, IRecuperarAlimentosSchema } from '../../interfaces/alimentos/apiAlimentosInterface.js';
 import { IAlimentoSchema } from '../../interfaces/alimentos/modelAlimentosInterface.js';
+import { authMiddleware } from '../../middlewares/auth.js';
 
 async function buscarAlimentoPeloCodigo(codigoAlimento: unknown): Promise<IRecuperarAlimentos> {
     if (!isValidString(codigoAlimento)) {
@@ -62,14 +63,14 @@ async function buscaAlimentoAutoComplete(nomeAlimento: unknown): Promise<IRecupe
 // Criação das rotas
 const recuperarAlimentosRouter = Router();
 
-recuperarAlimentosRouter.get('/', async (req, res) => {
+recuperarAlimentosRouter.get('/', authMiddleware, async (req, res) => {
     const codigoAlimento = req.query?.codigoAlimento;
     const result = await buscarAlimentoPeloCodigo(codigoAlimento);
 
     return res.status(result.statusCode).json(result);
 });
 
-recuperarAlimentosRouter.get('/autocomplete', async (req, res) => {
+recuperarAlimentosRouter.get('/autocomplete', authMiddleware, async (req, res) => {
     const nomeAlimento = req.query?.nomeAlimento;
     const result = await buscaAlimentoAutoComplete(nomeAlimento);
 
