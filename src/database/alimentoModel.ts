@@ -40,7 +40,7 @@ const alimentoSchema = new Schema<IAlimento>(
 // Criação de index
 alimentoSchema.index({ codigoAlimento: 1 }, { unique: true }); // Único e para facilitar busca
 alimentoSchema.index({ nomeAlimento: "text" }); // Para facilitar busca
-alimentoSchema.index({ "nutrientes.nomeComponente": "text" }); // Para facilitar busca
+alimentoSchema.index({ "nutrientes.nomeComponente": 1}); // Para facilitar busca
 
 // Criação do Model
 export const Alimento = mongoose.model<IAlimento>("Alimento", alimentoSchema);
