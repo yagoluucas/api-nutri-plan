@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { conectarAoBancoDeDados } from '../../database/index.js';
+import { conectarAoBancoDeDados } from '../../database/conexaoAoBanco.js';
 import { Alimento } from '../../database/alimentoModel.js';
 import { isValidString } from '../../utils/utils.js';
-import { IRecuperarAlimentos } from '../../interfaces/alimentos/apiAlimentosInterface.js';
+import { IRecuperarAlimentos, IRecuperarAlimentosSchema } from '../../interfaces/alimentos/apiAlimentosInterface.js';
+import { IAlimentoSchema } from '../../interfaces/alimentos/modelAlimentosInterface.js';
 
 async function buscarAlimentoPeloCodigo(codigoAlimento: unknown): Promise<IRecuperarAlimentos> {
     if (!isValidString(codigoAlimento)) {
@@ -11,9 +12,9 @@ async function buscarAlimentoPeloCodigo(codigoAlimento: unknown): Promise<IRecup
 
     await conectarAoBancoDeDados();
 
-    const alimento = await Alimento.findOne({ codigoAlimento });
+    const alimentoParsed = IAlimentoSchema.safeParse(await Alimento.findOne({ codigoAlimento }));
 
-    if (!alimento) {
+    if (!alimentoParsed.success) {
         return { message: "Alimento não encontrado", error: true, statusCode: 404 };
     }
 
@@ -21,7 +22,7 @@ async function buscarAlimentoPeloCodigo(codigoAlimento: unknown): Promise<IRecup
         message: "Alimento encontrado com sucesso",
         error: false,
         statusCode: 200,
-        alimentos: [alimento]
+        alimentos: [alimentoParsed.data]
     };
 }
 
@@ -32,20 +33,29 @@ async function buscaAlimentoAutoComplete(nomeAlimento: unknown): Promise<IRecupe
 
     await conectarAoBancoDeDados();
 
-    const alimentos = await Alimento.find({
+    const alimentosRaw = await Alimento.find({
         nomeAlimento: { $regex: `^${nomeAlimento}`, $options: "i" }
-    }).limit(50).select("_id nomeAlimento codigoAlimento").sort({ nomeAlimento: 1 });
+    }).limit(50).select("nomeAlimento codigoAlimento").sort({ nomeAlimento: 1 }).lean();
 
-    if (alimentos.length === 0) {
-        return { message: "Nenhum alimento encontrado", error: true, statusCode: 404 };
+    // Como estamos retornando apenas alguns campos no select(), usamos o .partial() para
+    // não dar erro nos campos faltantes, e .array() para validar a lista
+    const alimentos = IAlimentoSchema.partial().array().safeParse(alimentosRaw);
+
+    if (!alimentos.success || alimentos.data.length === 0) {
+        return { message: "Erro ao validar alimentos ou nenhum encontrado", error: true, statusCode: 404 };
     }
 
     return {
         message: "Alimentos recuperados com sucesso",
         error: false,
         statusCode: 200,
-        qtdAlimentosEncontrados: alimentos.length,
-        alimentos
+        qtdAlimentosEncontrados: alimentos.data.length,
+        alimentos: alimentos.data.map((alimento) => {
+            return {
+                codigoAlimento: alimento.codigoAlimento,
+                nomeAlimento: alimento.nomeAlimento
+            }
+        })
     };
 }
 

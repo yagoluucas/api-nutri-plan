@@ -4,7 +4,7 @@ import { IRetornoApiSchema } from "../generalInterfaces.js";
 
 const IRecuperarAlimentosSchema = IRetornoApiSchema.extend({
     qtdAlimentosEncontrados: z.number().optional(),
-    alimentos: z.array(IAlimentoSchema).optional()
+    alimentos: z.array(IAlimentoSchema.partial()).optional()
 });
 
 type IRecuperarAlimentos = z.infer<typeof IRecuperarAlimentosSchema>;
