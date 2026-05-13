@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const IRetornoApiSchema = z.object({
-    message: z.string(),
+    message: z.string().min(5),
     error: z.boolean(),
     statusCode: z.number()
 });
