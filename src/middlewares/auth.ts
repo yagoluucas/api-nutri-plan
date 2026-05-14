@@ -6,65 +6,68 @@ import { ITokenPayloadSchema } from "../interfaces/auth/authInterfaces.js";
 import { INutricionistaSchema } from "../interfaces/usuarios/nutricionistaInterfaces.js";
 import { conectarAoBancoDeDados } from "../database/conexaoAoBanco.js";
 
+function unauthorized(res: Response): void {
+    res.status(401).json({
+        message: "Não autorizado",
+        error: true,
+    });
+}
+
+function internalServerError(res: Response): void {
+    res.status(500).json({
+        message: "Erro interno do servidor",
+        error: true,
+    });
+}
+
 async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void
 > {
     try {
         const authHeader = req.headers?.authorization;
 
         if (!authHeader || !isValidString(authHeader)) {
-            res.status(401).json({
-                message: "Token não fornecido",
-                error: true,
-            });
-
+            unauthorized(res);
             return;
         }
 
         const [bearer, token] = authHeader.split(" ");
 
         if (!isValidString(bearer) || bearer !== "Bearer" || !isValidString(token)) {
-            res.status(401).json({
-                message: "Token inválido",
-                error: true,
-            });
-
+            unauthorized(res);
             return;
         }
 
         const jwtSecret = process.env.JWT_SECRET;
 
         if (!isValidString(jwtSecret)) {
-            res.status(500).json({
-                message: "Chave secreta não configurada",
-                error: true,
-            });
-
+            internalServerError(res);
             return;
         }
 
-        const decoded = jwt.verify(token, jwtSecret);
+        let decoded;
+
+        try {
+            decoded = jwt.verify(token, jwtSecret);
+        } catch (error) {
+            unauthorized(res);
+            return;
+        }
 
         const parsedToken = ITokenPayloadSchema.safeParse(decoded);
 
-        if(!parsedToken.success) {
-            res.status(401).json({
-                message: "Token inválido",
-                error: true
-            })
-
+        if (!parsedToken.success) {
+            unauthorized(res);
             return;
         }
 
         const id = parsedToken.data?.id;
 
+        await conectarAoBancoDeDados();
+
         const parsedUser = INutricionistaSchema.partial().safeParse(await Nutricionista.findById(id));
 
         if (!parsedUser.success) {
-            res.status(404).json({
-                message: "Usuário do token não existe mais",
-                error: true,
-            });
-
+            unauthorized(res);
             return;
         }
 
@@ -74,12 +77,8 @@ async function authMiddleware(req: Request, res: Response, next: NextFunction): 
 
     } catch (error) {
         console.log(`[AuthMiddleware] - Error: ${error}`);
-        
-        res.status(500).json({
-            message: "Erro ao validar token",
-            error: true,
-        });
+        internalServerError(res);
     }
 }
 
-export {authMiddleware};
+export { authMiddleware };
