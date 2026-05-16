@@ -5,42 +5,29 @@ import Nutricionista from "../database/nutricionista.js";
 import { ITokenPayloadSchema } from "../interfaces/auth/authInterfaces.js";
 import { INutricionistaSchema } from "../interfaces/usuarios/nutricionistaInterfaces.js";
 import { conectarAoBancoDeDados } from "../database/conexaoAoBanco.js";
+import { IErrorCause } from "../interfaces/errors/erros.js";
 
-function unauthorized(res: Response): void {
-    res.status(401).json({
-        message: "Não autorizado",
-        error: true,
-    });
-}
 
-function internalServerError(res: Response): void {
-    res.status(500).json({
-        message: "Erro interno do servidor",
-        error: true,
-    });
-}
-
-async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void
-> {
+async function authMiddleware(req: Request, res: Response, next: NextFunction) {
     try {
         const authHeader = req.headers?.authorization;
 
         if (!authHeader || !isValidString(authHeader)) {
-            unauthorized(res);
+            next(new Error("Não autorizado", {cause: {cause: "Authentication Failed", statusCode: 401} as IErrorCause}));
             return;
         }
 
         const [bearer, token] = authHeader.split(" ");
 
         if (!isValidString(bearer) || bearer !== "Bearer" || !isValidString(token)) {
-            unauthorized(res);
+            next(new Error("Não autorizado", {cause: {cause: "Authentication Failed", statusCode: 401} as IErrorCause}));
             return;
         }
 
         const jwtSecret = process.env.JWT_SECRET;
 
         if (!isValidString(jwtSecret)) {
-            internalServerError(res);
+            next(new Error("Erro interno do servidor", {cause: {cause: "Internal Server Error", statusCode: 500} as IErrorCause}));
             return;
         }
 
@@ -49,14 +36,14 @@ async function authMiddleware(req: Request, res: Response, next: NextFunction): 
         try {
             decoded = jwt.verify(token, jwtSecret);
         } catch (error) {
-            unauthorized(res);
+            next(new Error("Não autorizado", {cause: {cause: "Authentication Failed", statusCode: 401} as IErrorCause}));
             return;
         }
 
         const parsedToken = ITokenPayloadSchema.safeParse(decoded);
 
         if (!parsedToken.success) {
-            unauthorized(res);
+            next(new Error("Não autorizado", {cause: {cause: "Authentication Failed", statusCode: 401} as IErrorCause}));
             return;
         }
 
@@ -67,17 +54,17 @@ async function authMiddleware(req: Request, res: Response, next: NextFunction): 
         const parsedUser = INutricionistaSchema.partial().safeParse(await Nutricionista.findById(id));
 
         if (!parsedUser.success) {
-            unauthorized(res);
+            next(new Error("Não autorizado", {cause: {cause: "Authentication Failed", statusCode: 401} as IErrorCause}));
             return;
         }
 
-        req.user = parsedUser.data;
+        req.user = parsedUser.data; 
         next();
 
 
     } catch (error) {
         console.log(`[AuthMiddleware] - Error: ${error}`);
-        internalServerError(res);
+        next(error);
     }
 }
 

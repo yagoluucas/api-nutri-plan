@@ -1,39 +1,34 @@
 import Nutricionista from "../../database/nutricionista.js";
 import { gerarToken } from "../../utils/utils.js";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
-import { IAuth, ILoginUserSchema } from "../../interfaces/auth/authInterfaces.js";
+import { ILoginUserSchema } from "../../interfaces/auth/authInterfaces.js";
 import { INutricionistaSchema } from "../../interfaces/usuarios/nutricionistaInterfaces.js";
-import { Router } from "express";
+import { IErrorCause } from "../../interfaces/errors/erros.js";
+import { NextFunction, Request, Response, Router } from "express";
 
 const authRouter = Router();
 
-async function register(user: unknown): Promise<IAuth> {
+async function register(req: Request, res: Response, next: NextFunction) {
 
-    const nutricionistSafe = INutricionistaSchema.parse(user);
+    const nutricionistSafe = INutricionistaSchema.safeParse(req.body.nutricionista);
 
-    if (!nutricionistSafe) {
-        return {
-            message: "Dados do cadastro incorreto, valide e tente novamente",
-            error: true,
-            statusCode: 400
-        }
+    if (!nutricionistSafe.success) {
+        next(nutricionistSafe.error);
+        return;
     }
 
     try {
 
         await conectarAoBancoDeDados();
 
-        const nutricionistExist = await Nutricionista.findOne({ email: nutricionistSafe.email });
- 
+        const nutricionistExist = await Nutricionista.findOne({ email: nutricionistSafe.data.email });
+
         if (nutricionistExist) {
-            return {
-                message: "Nutricionista já cadastrado, tente novamente",
-                error: true,
-                statusCode: 400
-            }
+            next(new Error("Nutricionista já cadastrado, tente novamente", { cause: {cause: "Conflict", statusCode: 422} as IErrorCause }));
+            return;
         }
 
-        const createNutricionist = await Nutricionista.create(nutricionistSafe);
+        const createNutricionist = await Nutricionista.create(nutricionistSafe.data);
 
         const token = gerarToken(createNutricionist._id.toString());
 
@@ -51,45 +46,32 @@ async function register(user: unknown): Promise<IAuth> {
 
     } catch (error) {
         console.log(`[Auth Register] - Error: ${error}`);
-        return {
-            message: "Erro ao cadastrar usuário",
-            error: true,
-            statusCode: 500
-        }
+        next(error);
     }
 }
 
-async function login(user: unknown): Promise<IAuth> {
-    const safeUser = ILoginUserSchema.parse(user);
+async function login(req: Request, res: Response, next: NextFunction) {
+    const safeUser = ILoginUserSchema.safeParse(req.body?.userLogin);
 
-    if (!safeUser) {
-        return {
-            message: "Dados incorretos, valide e tente novamente",
-            error: true,
-            statusCode: 401
-        }
+    if (!safeUser.success) {
+        next(safeUser.error);
+        return;
     }
 
     try {
         await conectarAoBancoDeDados();
-        const user = await Nutricionista.findOne({email: safeUser.email}).select("+senha");
+        const user = await Nutricionista.findOne({ email: safeUser.data.email }).select("+senha");
 
-        if(!user){
-            return {
-                message: "Email ou senha inválidos, confira os dados e tente novamente",
-                error: true,
-                statusCode: 401
-            }
+        if (!user) {
+            next(new Error("Email ou senha inválidos, confira os dados e tente novamente", { cause: {cause: "Authentication Failed", statusCode: 401} as IErrorCause }));
+            return;
         }
 
-        const isPasswordValid = await user.validarSenha(safeUser.senha);
+        const isPasswordValid = await user.validarSenha(safeUser.data.senha);
 
-        if(!isPasswordValid){
-            return {
-                message: "Email ou senha inválidos, confira os dados e tente novamente",
-                error: true,
-                statusCode: 401
-            }
+        if (!isPasswordValid) {
+            next(new Error("Email ou senha inválidos, confira os dados e tente novamente", { cause: {cause: "Authentication Failed", statusCode: 401} as IErrorCause }));
+            return;
         }
 
         const token = gerarToken(user._id.toString());
@@ -106,26 +88,24 @@ async function login(user: unknown): Promise<IAuth> {
             }
         }
 
-    }catch(error) {
-        console.log(`[Auth Login] - Error: ${error}`)
-        return {
-            message: "Erro ao realizar login",
-            error: true,
-            statusCode: 500
-        }
+    } catch (error) {
+        console.log(`[Auth Login] - Error: ${error}`);
+        next(error);
     }
 }
 
-authRouter.post("/register", async (req, res) => {
-    const bodyUser = req.body?.nutricionista;
-    const returnAuth = await register(bodyUser);
-    return res.status(returnAuth.statusCode).json(returnAuth);
+authRouter.post("/register", async (req, res, next) => {
+    const returnAuth = await register(req, res, next);
+    if (returnAuth) {
+        return res.status(returnAuth.statusCode).json(returnAuth);
+    }
 });
 
-authRouter.post("/login", async (req, res) => {
-    const user = req.body?.userLogin;
-    const returnAuth = await login(user);
-    return res.status(returnAuth.statusCode).json(returnAuth);
+authRouter.post("/login", async (req, res, next) => {
+    const returnAuth = await login(req, res, next);
+    if (returnAuth) {
+        return res.status(returnAuth.statusCode).json(returnAuth);
+    }
 });
 
-export {authRouter}
+export { authRouter }

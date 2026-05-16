@@ -7,9 +7,9 @@ const nutricionistaSchema = new Schema<INutricionista, NutricionistaModel, INutr
         crn: { type: String, required: true, trim: true, minLength: 8 },
         nome: { type: String, required: true, trim: true, minLength: 2 },
         sobrenome: { type: String, required: true, trim: true, minlength: 2 },
-        email: { type: String, required: true, trim: true, lowercase: true, minlength: 2 },
+        email: { type: String, required: true, trim: true, lowercase: true, match: [/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, "Email incorreto, valide e tente novamente."] },
         dataNascimento: { type: Date, required: true },
-        senha: { type: String, required: true, minLength: 8, select: false }
+        senha: { type: String, required: true, minLength: 8, select: false, match: [/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/, "A senha deve conter pelo menos uma letra maiúscula, uma minúscula, um número e um caractere especial." ]}
     },
     {
         timestamps: true,
@@ -20,14 +20,14 @@ const nutricionistaSchema = new Schema<INutricionista, NutricionistaModel, INutr
 nutricionistaSchema.index({ email: 1, unique: 1 })
 nutricionistaSchema.index({ crn: 1, unique: 1 })
 
-// Criação das informações para salvar e checar a asenha
+// Criação das informações para salvar e checar a senha
 
 nutricionistaSchema.pre("save", async function () {
     if (!this.isModified("senha")) return;
 
     const saltRounds = 10;
     this.senha = await bcrypt.hash(this.senha, saltRounds);
-})
+});
 
 nutricionistaSchema.methods.validarSenha = async function (senhaInformada: string): Promise<boolean> {
     return bcrypt.compare(senhaInformada, this.senha);
