@@ -3,10 +3,12 @@ import { z } from "zod";
 const IUsuarioSchema = z.object({
     nome: z.string().trim().min(2, { message: "Nome deve ter pelo menos 2 caracteres" }).max(50, { message: "Nome deve ter no máximo 50 caracteres" }),
     sobrenome: z.string().trim().min(2, { message: "Sobrenome deve ter pelo menos 2 caracteres" }).max(50, { message: "Sobrenome deve ter no máximo 50 caracteres" }),
-    email: z.email({
+    email: z.string().email({
         message: "Email inválido, valide e tente novamente"
     }).trim().toLowerCase().min(5).max(100),
-    dataNascimento: z.coerce.date(),
+    dataNascimento: z.coerce.date()
+        .max(new Date(), "A data de nascimento não pode estar no futuro")
+        .max(new Date(new Date().getFullYear() - 15, new Date().getMonth(), new Date().getDate()), "Você precisa ter no mínimo 15 anos para se cadastrar"),
     senha: z.string().min(8, { message: "Senha deve ter pelo menos 8 caracteres" }).max(20, { message: "Senha deve ter no máximo 20 caracteres" })
 });
 
