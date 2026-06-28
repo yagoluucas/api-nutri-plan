@@ -193,6 +193,8 @@ Não exponha stack trace, token, secret, string de conexão ou detalhes internos
 
 Não altere contratos de resposta sem avaliar impacto no front-end.
 
+Interfaces devem estar presentes em um arquivo de interface/types e devem usar o zod por padrão.
+
 ## Padrão de módulos e rotas
 
 As rotas devem ficar dentro de `src/modules/<feature>/`.

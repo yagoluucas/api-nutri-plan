@@ -14,22 +14,38 @@ const ITokenPayloadSchema = z.object({
 
 type ITokenPayload = z.infer<typeof ITokenPayloadSchema>
 
-const IBasicUserSchema = z.object({
-    id: z.string(),
-    nome: z.string(),
-    email: z.string()
-});
+const AuthUserResponseSchema = z.object({
+    id: z.string().min(1),
+    nome: z.string().min(1),
+    email: z.email()
+}).strict();
 
-type IBasicUser = z.infer<typeof IBasicUserSchema>
+type AuthUserResponse = z.infer<typeof AuthUserResponseSchema>
 
-const IAuthSchema = IRetornoApiSchema.extend({
-    token: z.string().optional(),
-    user: IBasicUserSchema.optional()
-});
+const AuthSuccessBodySchema = IRetornoApiSchema.extend({
+    error: z.literal(false),
+    user: AuthUserResponseSchema
+}).strict();
 
-type IAuth = z.infer<typeof IAuthSchema>
+type AuthSuccessBody = z.infer<typeof AuthSuccessBodySchema>
+
+const AuthResultSchema = z.object({
+    token: z.string().min(1),
+    body: AuthSuccessBodySchema
+}).strict();
+
+type AuthResult = z.infer<typeof AuthResultSchema>
+
+const IBasicUserSchema = AuthUserResponseSchema;
+type IBasicUser = AuthUserResponse
+
+const IAuthSchema = AuthSuccessBodySchema;
+type IAuth = AuthSuccessBody
 
 export { 
+    AuthUserResponseSchema, AuthUserResponse,
+    AuthSuccessBodySchema, AuthSuccessBody,
+    AuthResultSchema, AuthResult,
     IAuthSchema, IAuth,
     IBasicUserSchema, IBasicUser,
     ILoginUserSchema, ILoginUser,

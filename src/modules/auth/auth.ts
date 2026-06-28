@@ -1,14 +1,14 @@
 import Nutricionista from "../../database/nutricionista.js";
 import { gerarToken } from "../../utils/utils.js";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
-import { ILoginUserSchema } from "../../interfaces/auth/authInterfaces.js";
+import { type AuthResult, ILoginUserSchema } from "../../interfaces/auth/authInterfaces.js";
 import { INutricionistaSchema } from "../../interfaces/usuarios/nutricionistaInterfaces.js";
 import { IErrorCause } from "../../interfaces/errors/erros.js";
 import { NextFunction, Request, Response, Router } from "express";
 
 const authRouter = Router();
 
-async function register(req: Request, res: Response, next: NextFunction) {
+async function register(req: Request, res: Response, next: NextFunction): Promise<AuthResult | void> {
 
     const nutricionistSafe = INutricionistaSchema.safeParse(req.body.nutricionista);
 
@@ -33,14 +33,16 @@ async function register(req: Request, res: Response, next: NextFunction) {
         const token = gerarToken(createNutricionist._id.toString());
 
         return {
-            message: "Nutricionista cadastrado com sucesso",
-            error: false,
             token,
-            statusCode: 201,
-            user: {
-                id: createNutricionist._id.toString(),
-                nome: createNutricionist.nome,
-                email: createNutricionist.email
+            body: {
+                message: "Nutricionista cadastrado com sucesso",
+                error: false,
+                statusCode: 201,
+                user: {
+                    id: createNutricionist._id.toString(),
+                    nome: createNutricionist.nome,
+                    email: createNutricionist.email
+                }
             }
         }
 
@@ -50,7 +52,7 @@ async function register(req: Request, res: Response, next: NextFunction) {
     }
 }
 
-async function login(req: Request, res: Response, next: NextFunction) {
+async function login(req: Request, res: Response, next: NextFunction): Promise<AuthResult | void> {
     const safeUser = ILoginUserSchema.safeParse(req.body?.userLogin);
 
     if (!safeUser.success) {
@@ -77,14 +79,16 @@ async function login(req: Request, res: Response, next: NextFunction) {
         const token = gerarToken(user._id.toString());
 
         return {
-            message: "Login realizado com sucesso",
-            error: false,
-            statusCode: 200,
             token,
-            user: {
-                id: user._id.toString(),
-                nome: user.nome,
-                email: user.email
+            body: {
+                message: "Login realizado com sucesso",
+                error: false,
+                statusCode: 200,
+                user: {
+                    id: user._id.toString(),
+                    nome: user.nome,
+                    email: user.email
+                }
             }
         }
 
@@ -97,14 +101,16 @@ async function login(req: Request, res: Response, next: NextFunction) {
 authRouter.post("/register", async (req, res, next) => {
     const returnAuth = await register(req, res, next);
     if (returnAuth) {
-        return res.status(returnAuth.statusCode).json(returnAuth);
+        res.set("Authorization", `Bearer ${returnAuth.token}`);
+        return res.status(returnAuth.body.statusCode).json(returnAuth.body);
     }
 });
 
 authRouter.post("/login", async (req, res, next) => {
     const returnAuth = await login(req, res, next);
     if (returnAuth) {
-        return res.status(returnAuth.statusCode).json(returnAuth);
+        res.set("Authorization", `Bearer ${returnAuth.token}`);
+        return res.status(returnAuth.body.statusCode).json(returnAuth.body);
     }
 });
 
