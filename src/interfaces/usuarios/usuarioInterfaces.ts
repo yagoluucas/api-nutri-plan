@@ -9,7 +9,6 @@ const IUsuarioSchema = z.object({
     dataNascimento: z.coerce.date()
         .max(new Date(), "A data de nascimento não pode estar no futuro")
         .max(new Date(new Date().getFullYear() - 15, new Date().getMonth(), new Date().getDate()), "Você precisa ter no mínimo 15 anos para se cadastrar"),
-    senha: z.string().min(8, { message: "Senha deve ter pelo menos 8 caracteres" }).max(20, { message: "Senha deve ter no máximo 20 caracteres" })
 });
 
 type IUsuario = z.infer<typeof IUsuarioSchema>;
