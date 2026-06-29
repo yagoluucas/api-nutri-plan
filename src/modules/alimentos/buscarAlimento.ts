@@ -48,9 +48,13 @@ async function buscaAlimentoAutoComplete(req: Request, res: Response, next: Next
     try {
         await conectarAoBancoDeDados();
 
-        const alimentosRaw = await Alimento.find({
-            nomeAlimento: { $regex: `^${foodName}`, $options: "i" }
-        }).limit(50).select("nomeAlimento codigoAlimento").sort({ nomeAlimento: 1 }).lean();
+        const searchTerms = (foodName as string).split(' ').filter(word => word.trim() !== '');
+        const query = searchTerms.length > 0 
+            ? { $and: searchTerms.map(term => ({ nomeAlimento: { $regex: term, $options: "i" } })) }
+            : {};
+
+        const alimentosRaw = await Alimento.find(query)
+            .limit(50).select("nomeAlimento codigoAlimento").sort({ nomeAlimento: 1 }).lean();
 
         // Como estamos retornando apenas alguns campos no select(), usamos o .partial() para
         // não dar erro nos campos faltantes, e .array() para validar a lista

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Back-end Security"
+  short_description: "Review Nutri Plan API security"
+  default_prompt: "Use $back-end-security to review an API change for security risks."
