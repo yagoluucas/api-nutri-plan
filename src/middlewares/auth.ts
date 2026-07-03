@@ -58,7 +58,8 @@ async function authMiddleware(req: Request, res: Response, next: NextFunction) {
             return;
         }
 
-        req.user = parsedUser.data; 
+        req.user = parsedUser.data;
+        req.nutricionistaId = id;
         next();
 
 

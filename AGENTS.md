@@ -193,7 +193,11 @@ Não exponha stack trace, token, secret, string de conexão ou detalhes internos
 
 Não altere contratos de resposta sem avaliar impacto no front-end.
 
-Interfaces devem estar presentes em um arquivo de interface/types e devem usar o zod por padrão.
+Toda interface ou contrato de dados da API deve ser construido primeiro com schema Zod no arquivo de interfaces/types correspondente.
+
+Tipos TypeScript devem ser inferidos a partir dos schemas com `z.infer<typeof Schema>`. Evite criar `interface` ou `type` manual duplicando o mesmo contrato que o Zod ja descreve.
+
+Use `interface` manual apenas quando o tipo nao representar um payload validavel pelo Zod, como metodos de modelo Mongoose, tipos genericos de bibliotecas ou adaptacoes estritamente necessarias.
 
 ## Padrão de módulos e rotas
 

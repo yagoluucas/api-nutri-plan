@@ -6,10 +6,13 @@
  * interface Request -> Estou falando apra o typescript que dentro da interface Request vamos passar a ter uma propriedade chamada user
  * user?: INutricionista -> Indica que essa nova propriedade será opcional (?) e será do tipo INutricionista
  */
+import type { INutricionista } from "../../interfaces/usuarios/nutricionistaInterfaces.js";
+
 declare global {
     namespace Express {
         interface Request{
-            user?: INutricionista;
+            user?: Partial<INutricionista>;
+            nutricionistaId?: string;
         }
     }
 }

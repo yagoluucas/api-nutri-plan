@@ -6,8 +6,8 @@ import { recuperarAlimentosRouter } from './modules/alimentos/buscarAlimento.js'
 import { cadastrarAlimentosRouter } from './modules/alimentos/cadastraAlimento.js';
 import { authRouter } from './modules/auth/auth.js';
 import { globalErrorHandle } from './middlewares/globalErrorHandler.js';
-import cadastrarRefeicoesRoutes from './modules/refeicoes/cadastrarRefeicao.js';
 import cadastrarPlanoRoutes from './modules/planoAlimentar/cadastrarPlano.js';
+import { cadastrarPacienteRouter } from './modules/pacientes/cadastrarPaciente.js';
 
 const app = express();
 const port = Number(process.env.PORT) || 5000;
@@ -36,10 +36,10 @@ app.get("/health", (req, res) => {
     });
 });
 
-app.use("/refeicoes", cadastrarRefeicoesRoutes)
 app.use("/planoAlimentar", cadastrarPlanoRoutes)
 app.use("/alimentos", recuperarAlimentosRouter)
 app.use("/alimentos", cadastrarAlimentosRouter)
+app.use("/pacientes", cadastrarPacienteRouter)
 app.use("/auth", authRouter)
 
 // Precisa ser o último middleware a ser chamado pois ele vai capturar os erros das rotas
