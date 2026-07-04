@@ -39,6 +39,62 @@ function decrypt(text: string): string {
     return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString();
 }
 
+function hasAtLeastOneItem(value: unknown[]) {
+    return Array.isArray(value) && value.length > 0;
+}
+
+const medidaSelecionadaSchema = new Schema(
+    {
+        nomeMedida: { type: String, required: true },
+        total: { type: Number, required: true, min: Number.MIN_VALUE },
+        unidadeMedida: { type: String, required: true },
+        tipoMedida: { type: String, enum: ["Caseira", "Tecnica"], required: true },
+    },
+    { _id: false },
+);
+
+const alimentoPlanoSchema = new Schema(
+    {
+        codigoAlimento: { type: String, required: true },
+        quantidade: { type: Number, required: true, min: Number.MIN_VALUE },
+        medidaSelecionada: { type: medidaSelecionadaSchema, required: true },
+    },
+    { _id: false },
+);
+
+const refeicaoPlanoSchema = new Schema(
+    {
+        nome: { type: String, required: true, trim: true, minLength: 1, maxLength: 30 },
+        horario: { type: String, required: true, match: /^([01][0-9]|2[0-3]):[0-5][0-9]$/ },
+        observacoes: { type: String },
+        alimentos: {
+            type: [alimentoPlanoSchema],
+            required: true,
+            validate: {
+                validator: hasAtLeastOneItem,
+                message: "A refeicao deve ter pelo menos 1 alimento",
+            },
+        },
+    },
+    { _id: false },
+);
+
+const planoAlimentarSchema = new Schema(
+    {
+        objetivoDoPlano: { type: String },
+        observacoesGerais: { type: String },
+        refeicoes: {
+            type: [refeicaoPlanoSchema],
+            required: true,
+            validate: {
+                validator: hasAtLeastOneItem,
+                message: "O plano alimentar deve ter pelo menos 1 refeicao",
+            },
+        },
+    },
+    { _id: true },
+);
+
 const pacienteSchema = new Schema<IPacienteDB, PacienteModel, IPacienteMethods>(
     {
         idNutricionista: { type: String, required: true, trim: true, index: true },
@@ -48,6 +104,7 @@ const pacienteSchema = new Schema<IPacienteDB, PacienteModel, IPacienteMethods>(
         dataNascimento: { type: String },
         sexo: { type: String, enum: ["Masculino", "Feminino", "Outro"], required: true, trim: true, minLength: 2 },
         observacoes: { type: String, trim: true, maxLength: 1000 },
+        planosAlimentares: { type: [planoAlimentarSchema], default: [] },
     },
     {
         timestamps: true,

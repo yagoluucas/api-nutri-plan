@@ -1,0 +1,72 @@
+import { NextFunction, Request, Router } from "express";
+import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
+import {
+  IPlanoAlimentarPacienteParamsSchema,
+  IRetornoPlanosAlimentaresSchema,
+} from "../../interfaces/planoAlimentar/planoAlimentarInterfaces.js";
+import { authMiddleware } from "../../middlewares/auth.js";
+import {
+  buscarPacienteAutorizado,
+  getIdNutricionistaAutenticado,
+} from "../pacientes/pacienteHelpers.js";
+import {
+  isPlanoAlimentarValido,
+  normalizarPlanoAlimentar,
+} from "./planoAlimentarHelpers.js";
+
+async function buscarPlanosAlimentares(req: Request, next: NextFunction) {
+  const params = IPlanoAlimentarPacienteParamsSchema.safeParse(req.params);
+
+  if (!params.success) {
+    next(params.error);
+    return;
+  }
+
+  try {
+    await conectarAoBancoDeDados();
+
+    const idNutricionista = getIdNutricionistaAutenticado(req, next);
+
+    if (!idNutricionista) {
+      return;
+    }
+
+    const paciente = await buscarPacienteAutorizado(
+      params.data.idPaciente,
+      idNutricionista,
+      next,
+    );
+
+    if (!paciente) {
+      return;
+    }
+
+    return IRetornoPlanosAlimentaresSchema.parse({
+      message: "Planos alimentares recuperados com sucesso",
+      error: false,
+      statusCode: 200,
+      planosAlimentares: (paciente.planosAlimentares ?? [])
+        .filter(isPlanoAlimentarValido)
+        .map(normalizarPlanoAlimentar),
+    });
+  } catch (error) {
+    console.log(`[Buscar Planos Alimentares] - Error: ${error}`);
+    next(error);
+  }
+}
+
+const buscarPlanoAlimentarRouter = Router();
+
+buscarPlanoAlimentarRouter.get(
+  "/:idPaciente/planos-alimentares",
+  authMiddleware,
+  async (req, res, next) => {
+    const result = await buscarPlanosAlimentares(req, next);
+
+    if (result) {
+      return res.status(result.statusCode).json(result);
+    }
+  },
+);
+
+export { buscarPlanoAlimentarRouter };

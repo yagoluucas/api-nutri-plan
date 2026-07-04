@@ -8,6 +8,7 @@ import {
   IRetornoPacientesSchema,
 } from "../../interfaces/usuarios/pacienteInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
+import { isPlanoAlimentarValido } from "../planoAlimentar/planoAlimentarHelpers.js";
 import { formatDateOnly } from "../../utils/utils.js";
 
 function getIdNutricionistaAutenticado(req: Request, next: NextFunction) {
@@ -54,7 +55,9 @@ async function buscarPacientes(req: Request, next: NextFunction) {
         sexo: paciente.sexo,
         createdAt: paciente.createdAt?.toISOString() ?? new Date().toISOString(),
         updatedAt: paciente.updatedAt?.toISOString() ?? new Date().toISOString(),
-        qtdPlanos: paciente.planosAlimentares?.length ?? 0
+        qtdPlanos: (paciente.planosAlimentares ?? []).filter(
+          isPlanoAlimentarValido,
+        ).length
       })),
     });
   } catch (error) {
@@ -117,7 +120,9 @@ async function buscarPaciente(
         dataNascimento: formatDateOnly(dataNascimento),
         sexo: pacienteRecuperado.sexo,
         observacoes: pacienteRecuperado.observacoes,
-        planosAlimentares: pacienteRecuperado.planosAlimentares ?? [],
+        planosAlimentares: (pacienteRecuperado.planosAlimentares ?? []).filter(
+          isPlanoAlimentarValido,
+        ),
         createdAt:
           pacienteRecuperado.createdAt?.toISOString() ?? new Date().toISOString(),
         updatedAt:
