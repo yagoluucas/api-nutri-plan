@@ -59,9 +59,9 @@ async function atualizarNutricionista(req: Request, next: NextFunction) {
   }
 }
 
-const atualizarImagemPerfilNutricionistaRouter = Router();
+const atualizarPerfilNutricionistaRouter = Router();
 
-atualizarImagemPerfilNutricionistaRouter.patch(
+atualizarPerfilNutricionistaRouter.patch(
   "/",
   authMiddleware,
   async (req, res, next) => {
@@ -73,4 +73,4 @@ atualizarImagemPerfilNutricionistaRouter.patch(
   },
 );
 
-export { atualizarImagemPerfilNutricionistaRouter };
+export { atualizarPerfilNutricionistaRouter };

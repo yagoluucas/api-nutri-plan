@@ -106,9 +106,9 @@ export const IAtualizarPacienteRequestSchema = z
   })
   .strict();
 
-export const IBuscarPacienteParamsSchema = z
+export const IBuscarUsuarioParamsSchema = z
   .object({
-    idPaciente: z
+    idUsuario: z
       .string()
       .trim()
       .regex(/^[a-fA-F0-9]{24}$/, "Id do paciente invalido"),
@@ -134,7 +134,7 @@ export const IPacienteListaItemSchema = IPacienteSchema.pick({
   id: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  qtdPlanos: z.number()
+  qtdPlanos: z.number(),
 });
 
 export const IRetornoPacienteSchema = IRetornoApiSchema.extend({

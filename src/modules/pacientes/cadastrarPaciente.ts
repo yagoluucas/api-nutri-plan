@@ -8,6 +8,7 @@ import {
 } from "../../interfaces/usuarios/pacienteInterfaces.js";
 import { IErrorCause } from "../../interfaces/errors/erros.js";
 import { formatDateOnly } from "../../utils/utils.js";
+import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
 
 async function cadastrarPaciente(
   req: Request,
@@ -25,17 +26,10 @@ async function cadastrarPaciente(
     await conectarAoBancoDeDados();
 
     const pacienteInput = pacienteSafe.data.paciente;
-    const idNutricionista = req.nutricionistaId;
+    
+    const idNutricionista = getIdNutricionistaAutenticado(req, next);
 
-    if (!idNutricionista) {
-      next(
-        new Error("Nao autorizado", {
-          cause: {
-            cause: "Authentication Failed",
-            statusCode: 401,
-          } as IErrorCause,
-        }),
-      );
+    if(!idNutricionista){
       return;
     }
 

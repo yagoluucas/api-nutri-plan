@@ -3,11 +3,12 @@ import Paciente from "../../database/paciente.js";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import { IErrorCause } from "../../interfaces/errors/erros.js";
 import { IRetornoApiSchema } from "../../interfaces/generalInterfaces.js";
-import { IBuscarPacienteParamsSchema } from "../../interfaces/usuarios/pacienteInterfaces.js";
+import { IBuscarUsuarioParamsSchema } from "../../interfaces/usuarios/pacienteInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
+import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
 
 async function deletarPaciente(req: Request, next: NextFunction) {
-  const pacienteParams = IBuscarPacienteParamsSchema.safeParse(req.params);
+  const pacienteParams = IBuscarUsuarioParamsSchema.safeParse(req.params);
 
   if (!pacienteParams.success) {
     next(pacienteParams.error);
@@ -17,22 +18,14 @@ async function deletarPaciente(req: Request, next: NextFunction) {
   try {
     await conectarAoBancoDeDados();
 
-    const idNutricionista = req.nutricionistaId;
+    const idNutricionista = getIdNutricionistaAutenticado(req, next);
 
     if (!idNutricionista) {
-      next(
-        new Error("Nao autorizado", {
-          cause: {
-            cause: "Authentication Failed",
-            statusCode: 401,
-          } as IErrorCause,
-        }),
-      );
       return;
     }
 
     const pacienteDeletado = await Paciente.findOneAndDelete({
-      _id: pacienteParams.data.idPaciente,
+      _id: pacienteParams.data.idUsuario,
       idNutricionista,
     });
 

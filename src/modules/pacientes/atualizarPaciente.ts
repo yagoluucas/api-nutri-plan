@@ -4,15 +4,16 @@ import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import { IErrorCause } from "../../interfaces/errors/erros.js";
 import {
   IAtualizarPacienteRequestSchema,
-  IBuscarPacienteParamsSchema,
+  IBuscarUsuarioParamsSchema,
   IRetornoPacienteSchema,
 } from "../../interfaces/usuarios/pacienteInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
 import { isPlanoAlimentarValido } from "../planoAlimentar/planoAlimentarHelpers.js";
 import { formatDateOnly } from "../../utils/utils.js";
+import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
 
 async function atualizarPaciente(req: Request, next: NextFunction) {
-  const pacienteParams = IBuscarPacienteParamsSchema.safeParse(req.params);
+  const pacienteParams = IBuscarUsuarioParamsSchema.safeParse(req.params);
 
   if (!pacienteParams.success) {
     next(pacienteParams.error);
@@ -29,22 +30,14 @@ async function atualizarPaciente(req: Request, next: NextFunction) {
   try {
     await conectarAoBancoDeDados();
 
-    const idNutricionista = req.nutricionistaId;
+    const idNutricionista = getIdNutricionistaAutenticado(req, next);
 
     if (!idNutricionista) {
-      next(
-        new Error("Nao autorizado", {
-          cause: {
-            cause: "Authentication Failed",
-            statusCode: 401,
-          } as IErrorCause,
-        }),
-      );
       return;
     }
 
     const pacienteRecuperado = await Paciente.findOne({
-      _id: pacienteParams.data.idPaciente,
+      _id: pacienteParams.data.idUsuario,
       idNutricionista,
     });
 
@@ -110,9 +103,11 @@ async function atualizarPaciente(req: Request, next: NextFunction) {
           isPlanoAlimentarValido,
         ),
         createdAt:
-          pacienteRecuperado.createdAt?.toISOString() ?? new Date().toISOString(),
+          pacienteRecuperado.createdAt?.toISOString() ??
+          new Date().toISOString(),
         updatedAt:
-          pacienteRecuperado.updatedAt?.toISOString() ?? new Date().toISOString(),
+          pacienteRecuperado.updatedAt?.toISOString() ??
+          new Date().toISOString(),
       },
     });
   } catch (error) {

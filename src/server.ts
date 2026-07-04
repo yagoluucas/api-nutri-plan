@@ -6,7 +6,7 @@ import { recuperarAlimentosRouter } from './modules/alimentos/buscarAlimento.js'
 import { cadastrarAlimentosRouter } from './modules/alimentos/cadastraAlimento.js';
 import { authRouter } from './modules/auth/auth.js';
 import { globalErrorHandle } from './middlewares/globalErrorHandler.js';
-import { atualizarImagemPerfilNutricionistaRouter } from './modules/nutricionista/atualizarNutricionista.js';
+import { atualizarPerfilNutricionistaRouter } from './modules/nutricionista/atualizarNutricionista.js';
 import { buscarPerfilNutricionistaRouter } from './modules/nutricionista/buscarPerfilNutricionista.js';
 import { atualizarPlanoAlimentarRouter } from './modules/planoAlimentar/atualizarPlanoAlimentar.js';
 import { buscarPlanoAlimentarRouter } from './modules/planoAlimentar/buscarPlanoAlimentar.js';
@@ -16,6 +16,7 @@ import { atualizarPacienteRouter } from './modules/pacientes/atualizarPaciente.j
 import { buscarPacienteRouter } from './modules/pacientes/buscarPaciente.js';
 import { cadastrarPacienteRouter } from './modules/pacientes/cadastrarPaciente.js';
 import { deletarPacienteRouter } from './modules/pacientes/deletarPaciente.js';
+import { deletarNutricionistaRouter } from './modules/nutricionista/deleterNutricionista.js';
 
 const app = express();
 const port = Number(process.env.PORT) || 5000;
@@ -50,7 +51,8 @@ app.use("/pacientes", atualizarPlanoAlimentarRouter)
 app.use("/pacientes", deletarPlanoAlimentarRouter)
 
 app.use("/nutricionista", buscarPerfilNutricionistaRouter)
-app.use("/nutricionista", atualizarImagemPerfilNutricionistaRouter)
+app.use("/nutricionista", atualizarPerfilNutricionistaRouter)
+app.use("/nutricionista", deletarNutricionistaRouter)
 
 app.use("/auth", authRouter)
 

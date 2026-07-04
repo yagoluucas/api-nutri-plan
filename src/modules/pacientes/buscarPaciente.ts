@@ -3,31 +3,14 @@ import Paciente from "../../database/paciente.js";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import { IErrorCause } from "../../interfaces/errors/erros.js";
 import {
-  IBuscarPacienteParamsSchema,
+  IBuscarUsuarioParamsSchema,
   IRetornoPacienteSchema,
   IRetornoPacientesSchema,
 } from "../../interfaces/usuarios/pacienteInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
 import { isPlanoAlimentarValido } from "../planoAlimentar/planoAlimentarHelpers.js";
 import { formatDateOnly } from "../../utils/utils.js";
-
-function getIdNutricionistaAutenticado(req: Request, next: NextFunction) {
-  const idNutricionista = req.nutricionistaId;
-
-  if (!idNutricionista) {
-    next(
-      new Error("Nao autorizado", {
-        cause: {
-          cause: "Authentication Failed",
-          statusCode: 401,
-        } as IErrorCause,
-      }),
-    );
-    return;
-  }
-
-  return idNutricionista;
-}
+import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
 
 async function buscarPacientes(req: Request, next: NextFunction) {
   try {
@@ -53,11 +36,13 @@ async function buscarPacientes(req: Request, next: NextFunction) {
         sobrenome: paciente.sobrenome,
         email: paciente.getEmailDescriptografado(),
         sexo: paciente.sexo,
-        createdAt: paciente.createdAt?.toISOString() ?? new Date().toISOString(),
-        updatedAt: paciente.updatedAt?.toISOString() ?? new Date().toISOString(),
+        createdAt:
+          paciente.createdAt?.toISOString() ?? new Date().toISOString(),
+        updatedAt:
+          paciente.updatedAt?.toISOString() ?? new Date().toISOString(),
         qtdPlanos: (paciente.planosAlimentares ?? []).filter(
           isPlanoAlimentarValido,
-        ).length
+        ).length,
       })),
     });
   } catch (error) {
@@ -66,11 +51,8 @@ async function buscarPacientes(req: Request, next: NextFunction) {
   }
 }
 
-async function buscarPaciente(
-  req: Request,
-  next: NextFunction,
-) {
-  const pacienteParams = IBuscarPacienteParamsSchema.safeParse(req.params);
+async function buscarPaciente(req: Request, next: NextFunction) {
+  const pacienteParams = IBuscarUsuarioParamsSchema.safeParse(req.params);
 
   if (!pacienteParams.success) {
     next(pacienteParams.error);
@@ -87,7 +69,7 @@ async function buscarPaciente(
     }
 
     const pacienteRecuperado = await Paciente.findOne({
-      _id: pacienteParams.data.idPaciente,
+      _id: pacienteParams.data.idUsuario,
       idNutricionista,
     });
 
@@ -124,9 +106,11 @@ async function buscarPaciente(
           isPlanoAlimentarValido,
         ),
         createdAt:
-          pacienteRecuperado.createdAt?.toISOString() ?? new Date().toISOString(),
+          pacienteRecuperado.createdAt?.toISOString() ??
+          new Date().toISOString(),
         updatedAt:
-          pacienteRecuperado.updatedAt?.toISOString() ?? new Date().toISOString(),
+          pacienteRecuperado.updatedAt?.toISOString() ??
+          new Date().toISOString(),
       },
     });
   } catch (error) {
