@@ -32,14 +32,10 @@ const IPerfilNutricionistaSchema = INutricionistaSchema.omit({
 
 type IPerfilNutricionista = z.infer<typeof IPerfilNutricionistaSchema>;
 
-const IAtualizarImagemPerfilNutricionistaRequestSchema = z
-    .object({
-        imagemPerfil: imagemPerfilBase64Schema.nullable(),
-    })
-    .strict();
+const IAtualizarNutricionista = INutricionistaSchema.partial();
 
-type IAtualizarImagemPerfilNutricionistaRequest = z.infer<
-    typeof IAtualizarImagemPerfilNutricionistaRequestSchema
+type IAtualizarNutricionistaRequest = z.infer<
+    typeof IAtualizarNutricionista
 >;
 
 const IRetornoPerfilNutricionistaSchema = IRetornoApiSchema.extend({
@@ -55,8 +51,8 @@ type NutricionistaModel = Model<INutricionista, {}, INutricionistaMethods>;
 export {
     INutricionistaSchema, INutricionista,
     IPerfilNutricionistaSchema, IPerfilNutricionista,
-    IAtualizarImagemPerfilNutricionistaRequestSchema,
-    IAtualizarImagemPerfilNutricionistaRequest,
+    IAtualizarNutricionista,
+    IAtualizarNutricionistaRequest,
     IRetornoPerfilNutricionistaSchema,
     INutricionistaMethods, NutricionistaModel
 }

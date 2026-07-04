@@ -1,7 +1,7 @@
 import { NextFunction, Request, Router } from "express";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import {
-  IAtualizarImagemPerfilNutricionistaRequestSchema,
+  IAtualizarNutricionista,
   IRetornoPerfilNutricionistaSchema,
 } from "../../interfaces/usuarios/nutricionistaInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
@@ -11,15 +11,11 @@ import {
   normalizarPerfilNutricionista,
 } from "./nutricionistaHelpers.js";
 
-async function atualizarImagemPerfilNutricionista(
-  req: Request,
-  next: NextFunction,
-) {
-  const imagemSafe =
-    IAtualizarImagemPerfilNutricionistaRequestSchema.safeParse(req.body);
+async function atualizarNutricionista(req: Request, next: NextFunction) {
+  const nutricionistaSafe = IAtualizarNutricionista.safeParse(req.body);
 
-  if (!imagemSafe.success) {
-    next(imagemSafe.error);
+  if (!nutricionistaSafe.success) {
+    next(nutricionistaSafe.error);
     return;
   }
 
@@ -41,17 +37,24 @@ async function atualizarImagemPerfilNutricionista(
       return;
     }
 
-    nutricionista.imagemPerfil = imagemSafe.data.imagemPerfil ?? undefined;
+    const nutricionistaData = nutricionistaSafe.data;
+
+    Object.entries(nutricionistaData).forEach(([campo, valor]) => {
+      if (valor !== undefined) {
+        nutricionista.set(campo, valor);
+      }
+    });
+
     await nutricionista.save({ validateModifiedOnly: true });
 
     return IRetornoPerfilNutricionistaSchema.parse({
-      message: "Imagem de perfil atualizada com sucesso",
+      message: "Perfil do nutricionista atualizado",
       error: false,
       statusCode: 200,
       nutricionista: normalizarPerfilNutricionista(nutricionista),
     });
   } catch (error) {
-    console.log(`[Atualizar Imagem Perfil Nutricionista] - Error: ${error}`);
+    console.log(`[Atualizar perfil do nutricionista] - Error: ${error}`);
     next(error);
   }
 }
@@ -59,10 +62,10 @@ async function atualizarImagemPerfilNutricionista(
 const atualizarImagemPerfilNutricionistaRouter = Router();
 
 atualizarImagemPerfilNutricionistaRouter.patch(
-  "/perfil/imagem",
+  "/",
   authMiddleware,
   async (req, res, next) => {
-    const result = await atualizarImagemPerfilNutricionista(req, next);
+    const result = await atualizarNutricionista(req, next);
 
     if (result) {
       return res.status(result.statusCode).json(result);

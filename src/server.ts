@@ -6,7 +6,7 @@ import { recuperarAlimentosRouter } from './modules/alimentos/buscarAlimento.js'
 import { cadastrarAlimentosRouter } from './modules/alimentos/cadastraAlimento.js';
 import { authRouter } from './modules/auth/auth.js';
 import { globalErrorHandle } from './middlewares/globalErrorHandler.js';
-import { atualizarImagemPerfilNutricionistaRouter } from './modules/nutricionista/atualizarImagemPerfilNutricionista.js';
+import { atualizarImagemPerfilNutricionistaRouter } from './modules/nutricionista/atualizarNutricionista.js';
 import { buscarPerfilNutricionistaRouter } from './modules/nutricionista/buscarPerfilNutricionista.js';
 import { atualizarPlanoAlimentarRouter } from './modules/planoAlimentar/atualizarPlanoAlimentar.js';
 import { buscarPlanoAlimentarRouter } from './modules/planoAlimentar/buscarPlanoAlimentar.js';
