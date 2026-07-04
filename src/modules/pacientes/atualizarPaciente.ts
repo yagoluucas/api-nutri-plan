@@ -1,0 +1,135 @@
+import { NextFunction, Request, Router } from "express";
+import Paciente from "../../database/paciente.js";
+import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
+import { IErrorCause } from "../../interfaces/errors/erros.js";
+import {
+  IAtualizarPacienteRequestSchema,
+  IBuscarPacienteParamsSchema,
+  IRetornoPacienteSchema,
+} from "../../interfaces/usuarios/pacienteInterfaces.js";
+import { authMiddleware } from "../../middlewares/auth.js";
+import { formatDateOnly } from "../../utils/utils.js";
+
+async function atualizarPaciente(req: Request, next: NextFunction) {
+  const pacienteParams = IBuscarPacienteParamsSchema.safeParse(req.params);
+
+  if (!pacienteParams.success) {
+    next(pacienteParams.error);
+    return;
+  }
+
+  const pacienteSafe = IAtualizarPacienteRequestSchema.safeParse(req.body);
+
+  if (!pacienteSafe.success) {
+    next(pacienteSafe.error);
+    return;
+  }
+
+  try {
+    await conectarAoBancoDeDados();
+
+    const idNutricionista = req.nutricionistaId;
+
+    if (!idNutricionista) {
+      next(
+        new Error("Nao autorizado", {
+          cause: {
+            cause: "Authentication Failed",
+            statusCode: 401,
+          } as IErrorCause,
+        }),
+      );
+      return;
+    }
+
+    const pacienteRecuperado = await Paciente.findOne({
+      _id: pacienteParams.data.idPaciente,
+      idNutricionista,
+    });
+
+    if (!pacienteRecuperado) {
+      next(
+        new Error("Paciente nao encontrado", {
+          cause: {
+            cause: "Not Found",
+            internalCause: "Data Not Found",
+            statusCode: 404,
+          } as IErrorCause,
+        }),
+      );
+      return;
+    }
+
+    const pacienteAtualizacao = pacienteSafe.data.paciente;
+
+    if (pacienteAtualizacao.nome !== undefined) {
+      pacienteRecuperado.nome = pacienteAtualizacao.nome;
+    }
+
+    if (pacienteAtualizacao.sobrenome !== undefined) {
+      pacienteRecuperado.sobrenome = pacienteAtualizacao.sobrenome;
+    }
+
+    if (pacienteAtualizacao.sexo !== undefined) {
+      pacienteRecuperado.sexo = pacienteAtualizacao.sexo;
+    }
+
+    if (Object.hasOwn(pacienteAtualizacao, "email")) {
+      pacienteRecuperado.email = pacienteAtualizacao.email;
+    }
+
+    if (Object.hasOwn(pacienteAtualizacao, "dataNascimento")) {
+      pacienteRecuperado.dataNascimento =
+        pacienteAtualizacao.dataNascimento?.toISOString();
+    }
+
+    if (Object.hasOwn(pacienteAtualizacao, "observacoes")) {
+      pacienteRecuperado.observacoes = pacienteAtualizacao.observacoes;
+    }
+
+    await pacienteRecuperado.save();
+
+    const dataNascimento =
+      pacienteRecuperado.getDataNascimentoDescriptografada();
+
+    return IRetornoPacienteSchema.parse({
+      message: "Paciente atualizado com sucesso",
+      error: false,
+      statusCode: 200,
+      paciente: {
+        id: String(pacienteRecuperado._id),
+        idNutricionista: pacienteRecuperado.idNutricionista,
+        nome: pacienteRecuperado.nome,
+        sobrenome: pacienteRecuperado.sobrenome,
+        email: pacienteRecuperado.getEmailDescriptografado(),
+        dataNascimento: formatDateOnly(dataNascimento),
+        sexo: pacienteRecuperado.sexo,
+        observacoes: pacienteRecuperado.observacoes,
+        planosAlimentares: pacienteRecuperado.planosAlimentares ?? [],
+        createdAt:
+          pacienteRecuperado.createdAt?.toISOString() ?? new Date().toISOString(),
+        updatedAt:
+          pacienteRecuperado.updatedAt?.toISOString() ?? new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.log(`[Atualizar Paciente] - Error: ${error}`);
+    next(error);
+  }
+}
+
+const atualizarPacienteRouter = Router();
+
+atualizarPacienteRouter.patch(
+  "/:idPaciente",
+  authMiddleware,
+  async (req, res, next) => {
+    const result = await atualizarPaciente(req, next);
+
+    if (result) {
+      return res.status(result.statusCode).json(result);
+    }
+  },
+);
+
+export { atualizarPacienteRouter };

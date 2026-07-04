@@ -7,7 +7,10 @@ import { cadastrarAlimentosRouter } from './modules/alimentos/cadastraAlimento.j
 import { authRouter } from './modules/auth/auth.js';
 import { globalErrorHandle } from './middlewares/globalErrorHandler.js';
 import cadastrarPlanoRoutes from './modules/planoAlimentar/cadastrarPlano.js';
+import { atualizarPacienteRouter } from './modules/pacientes/atualizarPaciente.js';
+import { buscarPacienteRouter } from './modules/pacientes/buscarPaciente.js';
 import { cadastrarPacienteRouter } from './modules/pacientes/cadastrarPaciente.js';
+import { deletarPacienteRouter } from './modules/pacientes/deletarPaciente.js';
 
 const app = express();
 const port = Number(process.env.PORT) || 5000;
@@ -40,6 +43,9 @@ app.use("/planoAlimentar", cadastrarPlanoRoutes)
 app.use("/alimentos", recuperarAlimentosRouter)
 app.use("/alimentos", cadastrarAlimentosRouter)
 app.use("/pacientes", cadastrarPacienteRouter)
+app.use("/pacientes", buscarPacienteRouter)
+app.use("/pacientes", atualizarPacienteRouter)
+app.use("/pacientes", deletarPacienteRouter)
 app.use("/auth", authRouter)
 
 // Precisa ser o último middleware a ser chamado pois ele vai capturar os erros das rotas
