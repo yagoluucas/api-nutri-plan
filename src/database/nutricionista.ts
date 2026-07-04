@@ -9,6 +9,7 @@ const nutricionistaSchema = new Schema<INutricionista, NutricionistaModel, INutr
         sobrenome: { type: String, required: true, trim: true, minlength: 2 },
         email: { type: String, required: true, trim: true, lowercase: true, match: [/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, "Email incorreto, valide e tente novamente."] },
         dataNascimento: { type: Date, required: true },
+        imagemPerfil: { type: String, maxLength: 2_800_000 },
         senha: { type: String, required: true, minLength: 8, select: false, match: [/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/, "A senha deve conter pelo menos uma letra maiúscula, uma minúscula, um número e um caractere especial." ]}
     },
     {

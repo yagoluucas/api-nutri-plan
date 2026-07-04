@@ -6,6 +6,8 @@ import { recuperarAlimentosRouter } from './modules/alimentos/buscarAlimento.js'
 import { cadastrarAlimentosRouter } from './modules/alimentos/cadastraAlimento.js';
 import { authRouter } from './modules/auth/auth.js';
 import { globalErrorHandle } from './middlewares/globalErrorHandler.js';
+import { atualizarImagemPerfilNutricionistaRouter } from './modules/nutricionista/atualizarImagemPerfilNutricionista.js';
+import { buscarPerfilNutricionistaRouter } from './modules/nutricionista/buscarPerfilNutricionista.js';
 import { atualizarPlanoAlimentarRouter } from './modules/planoAlimentar/atualizarPlanoAlimentar.js';
 import { buscarPlanoAlimentarRouter } from './modules/planoAlimentar/buscarPlanoAlimentar.js';
 import { cadastrarPlanoAlimentarRouter } from './modules/planoAlimentar/cadastrarPlanoAlimentar.js';
@@ -22,7 +24,7 @@ app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
 app.use(cors(corsOptions));
-app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '1mb' }));
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '3mb' }));
 
 // Apenas para testar o funcionamento da API
 app.get("/", (req, res) => {
@@ -46,6 +48,9 @@ app.use("/pacientes", cadastrarPlanoAlimentarRouter)
 app.use("/pacientes", buscarPlanoAlimentarRouter)
 app.use("/pacientes", atualizarPlanoAlimentarRouter)
 app.use("/pacientes", deletarPlanoAlimentarRouter)
+
+app.use("/nutricionista", buscarPerfilNutricionistaRouter)
+app.use("/nutricionista", atualizarImagemPerfilNutricionistaRouter)
 
 app.use("/auth", authRouter)
 
