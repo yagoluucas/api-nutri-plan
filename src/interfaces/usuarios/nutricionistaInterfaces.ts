@@ -34,7 +34,7 @@ type IPerfilNutricionista = z.infer<typeof IPerfilNutricionistaSchema>;
 
 const IAtualizarNutricionista = INutricionistaSchema.omit({
     senha: true
-}).partial();
+}).partial().strict();
 
 type IAtualizarNutricionistaRequest = z.infer<
     typeof IAtualizarNutricionista

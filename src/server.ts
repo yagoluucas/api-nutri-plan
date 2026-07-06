@@ -18,6 +18,7 @@ import { buscarPacienteRouter } from './modules/pacientes/buscarPaciente.js';
 import { cadastrarPacienteRouter } from './modules/pacientes/cadastrarPaciente.js';
 import { deletarPacienteRouter } from './modules/pacientes/deletarPaciente.js';
 import { deletarNutricionistaRouter } from './modules/nutricionista/deleterNutricionista.js';
+import helmet from 'helmet';
 
 const app = express();
 const port = Number(process.env.PORT) || 5000;
@@ -25,6 +26,7 @@ const port = Number(process.env.PORT) || 5000;
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
+app.use(helmet);
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '3mb' }));
