@@ -2,23 +2,34 @@
 
 import mongoose, { Schema } from "mongoose";
 import { IPacienteDB, IPacienteMethods, PacienteModel } from "../interfaces/usuarios/pacienteInterfaces";
+import type { IErrorCause } from "../interfaces/errors/erros.js";
 import crypto from "crypto";
 
 // Chave AES-256: deve ser 32 bytes (64 caracteres hexadecimais) definida no .env
 const ALGORITHM = "aes-256-cbc";
 const IV_LENGTH = 16;
 
+function encryptionConfigError(message: string) {
+    return new Error(message, {
+        cause: {
+            cause: "Internal Server Error",
+            internalCause: "Unexpected Error",
+            statusCode: 500,
+        } as IErrorCause,
+    });
+}
+
 function getSecretKey(): Buffer {
     const encryptionKey = process.env.ENCRYPTION_KEY;
 
     if (!encryptionKey) {
-        throw new Error("ENCRYPTION_KEY nao configurada.");
+        throw encryptionConfigError("ENCRYPTION_KEY nao configurada.");
     }
 
     const secretKey = Buffer.from(encryptionKey, "hex");
 
     if (secretKey.length !== 32) {
-        throw new Error("ENCRYPTION_KEY deve ter 32 bytes em hexadecimal.");
+        throw encryptionConfigError("ENCRYPTION_KEY deve ter 32 bytes em hexadecimal.");
     }
 
     return secretKey;

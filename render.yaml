@@ -25,3 +25,5 @@ services:
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 1d
+      - key: ENCRYPTION_KEY
+        sync: false

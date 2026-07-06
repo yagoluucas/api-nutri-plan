@@ -40,6 +40,14 @@ app.get("/", (req, res) => {
     });
 });
 
+app.get("/health", (req, res) => {
+    res.json({
+        message: "Servidor saudavel",
+        error: false,
+        statusCode: 200
+    });
+});
+
 
 app.use("/alimentos", recuperarAlimentosRouter)
 app.use("/alimentos", cadastrarAlimentosRouter)
