@@ -39,6 +39,24 @@ function decrypt(text: string): string {
     return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString();
 }
 
+function isEncryptedValue(value: string) {
+    const [ivHex, encryptedHex] = value.split(":");
+
+    return (
+        /^[a-fA-F0-9]{32}$/.test(ivHex ?? "") &&
+        /^[a-fA-F0-9]+$/.test(encryptedHex ?? "") &&
+        encryptedHex.length % 2 === 0
+    );
+}
+
+function decryptIfEncrypted(value: string): string {
+    if (!isEncryptedValue(value)) {
+        return value;
+    }
+
+    return decrypt(value);
+}
+
 function hasAtLeastOneItem(value: unknown[]) {
     return Array.isArray(value) && value.length > 0;
 }
@@ -128,7 +146,7 @@ pacienteSchema.methods.getEmailDescriptografado = function (): string | undefine
         return undefined;
     }
 
-    return decrypt(this.email);
+    return decryptIfEncrypted(this.email);
 };
 
 pacienteSchema.methods.getDataNascimentoDescriptografada = function (): Date | undefined {
@@ -136,7 +154,7 @@ pacienteSchema.methods.getDataNascimentoDescriptografada = function (): Date | u
         return undefined;
     }
 
-    return new Date(decrypt(this.dataNascimento));
+    return new Date(decryptIfEncrypted(this.dataNascimento));
 };
 
 const Paciente = mongoose.model<IPacienteDB, PacienteModel>("Paciente", pacienteSchema);

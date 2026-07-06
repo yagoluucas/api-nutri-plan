@@ -6,6 +6,7 @@ import { IErrorCauseSchema } from "../interfaces/errors/erros.js";
 // O Express identifica que este é um middleware de ERRO especificamente
 // por ele receber 4 parâmetros (error, req, res, next) e não 3 como o auth.
 function globalErrorHandle(error: any, req: Request, res: Response, next: NextFunction){
+    console.error("[Global Error Handler]", error);
    
     if(error instanceof mongoose.Error.ValidationError) {
         const firstError = Object.keys(error.errors)[0];
@@ -50,7 +51,10 @@ function globalErrorHandle(error: any, req: Request, res: Response, next: NextFu
     return res.status(500).json({
         message: "Error interno do servidor",
         error: true,
-        statusCode: 500
+        statusCode: 500,
+        ...(process.env.NODE_ENV === "production"
+            ? {}
+            : { details: error instanceof Error ? error.message : String(error) }),
     })
 }
 
