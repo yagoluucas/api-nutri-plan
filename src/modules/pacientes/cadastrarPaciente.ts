@@ -6,7 +6,6 @@ import {
   ICadastrarPacienteRequestSchema,
   IRetornoPacienteSchema,
 } from "../../interfaces/usuarios/pacienteInterfaces.js";
-import { IErrorCause } from "../../interfaces/errors/erros.js";
 import { formatDateOnly } from "../../utils/utils.js";
 import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
 

@@ -69,7 +69,7 @@ async function buscarPaciente(req: Request, next: NextFunction) {
     }
 
     const pacienteRecuperado = await Paciente.findOne({
-      _id: pacienteParams.data.idUsuario,
+      _id: pacienteParams.data.idPaciente,
       idNutricionista,
     });
 

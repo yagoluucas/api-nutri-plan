@@ -108,7 +108,7 @@ export const IAtualizarPacienteRequestSchema = z
 
 export const IBuscarUsuarioParamsSchema = z
   .object({
-    idUsuario: z
+    idPaciente: z
       .string()
       .trim()
       .regex(/^[a-fA-F0-9]{24}$/, "Id do paciente invalido"),

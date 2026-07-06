@@ -7,19 +7,35 @@ import { INutricionistaSchema } from "../interfaces/usuarios/nutricionistaInterf
 import { conectarAoBancoDeDados } from "../database/conexaoAoBanco.js";
 import { IErrorCause } from "../interfaces/errors/erros.js";
 
+const AUTH_COOKIE_NAMES = ["accessToken", "__Host-accessToken", "nutriplan_token"];
+
+function getBearerToken(req: Request) {
+    const authHeader = req.headers?.authorization;
+
+    if (isValidString(authHeader)) {
+        const [bearer, token] = authHeader.split(" ");
+
+        if (isValidString(bearer) && bearer === "Bearer" && isValidString(token)) {
+            return token;
+        }
+    }
+
+    for (const cookieName of AUTH_COOKIE_NAMES) {
+        const token = req.cookies?.[cookieName];
+
+        if (isValidString(token)) {
+            return token;
+        }
+    }
+
+    return null;
+}
 
 async function authMiddleware(req: Request, res: Response, next: NextFunction) {
     try {
-        const authHeader = req.headers?.authorization;
+        const token = getBearerToken(req);
 
-        if (!authHeader || !isValidString(authHeader)) {
-            next(new Error("Não autorizado", {cause: {cause: "Authentication Failed", statusCode: 401} as IErrorCause}));
-            return;
-        }
-
-        const [bearer, token] = authHeader.split(" ");
-
-        if (!isValidString(bearer) || bearer !== "Bearer" || !isValidString(token)) {
+        if (!isValidString(token)) {
             next(new Error("Não autorizado", {cause: {cause: "Authentication Failed", statusCode: 401} as IErrorCause}));
             return;
         }

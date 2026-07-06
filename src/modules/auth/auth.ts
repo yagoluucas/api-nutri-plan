@@ -5,6 +5,7 @@ import { type AuthResult, ILoginUserSchema } from "../../interfaces/auth/authInt
 import { INutricionistaSchema } from "../../interfaces/usuarios/nutricionistaInterfaces.js";
 import { IErrorCause } from "../../interfaces/errors/erros.js";
 import { NextFunction, Request, Response, Router } from "express";
+import { loginRateLimiter, registerRateLimiter } from "../../middlewares/rateLimit.js";
 
 const authRouter = Router();
 
@@ -98,7 +99,7 @@ async function login(req: Request, res: Response, next: NextFunction): Promise<A
     }
 }
 
-authRouter.post("/register", async (req, res, next) => {
+authRouter.post("/register", registerRateLimiter, async (req, res, next) => {
     const returnAuth = await register(req, res, next);
     if (returnAuth) {
         res.set("Authorization", `Bearer ${returnAuth.token}`);
@@ -106,7 +107,7 @@ authRouter.post("/register", async (req, res, next) => {
     }
 });
 
-authRouter.post("/login", async (req, res, next) => {
+authRouter.post("/login", loginRateLimiter, async (req, res, next) => {
     const returnAuth = await login(req, res, next);
     if (returnAuth) {
         res.set("Authorization", `Bearer ${returnAuth.token}`);

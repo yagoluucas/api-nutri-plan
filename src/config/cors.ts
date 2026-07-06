@@ -36,6 +36,10 @@ const allowedOrigins = new Set([
 
 const allowAnyOrigin = allowedOrigins.has("*");
 
+if (process.env.NODE_ENV === "production" && allowAnyOrigin) {
+    throw new Error("CORS_ORIGINS, CORS_ORIGIN e FRONTEND_URL nao podem conter '*' em producao");
+}
+
 export const corsOptions: CorsOptions = {
     origin(origin, callback) {
         if (!origin) {

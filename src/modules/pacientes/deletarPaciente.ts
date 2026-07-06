@@ -25,7 +25,7 @@ async function deletarPaciente(req: Request, next: NextFunction) {
     }
 
     const pacienteDeletado = await Paciente.findOneAndDelete({
-      _id: pacienteParams.data.idUsuario,
+      _id: pacienteParams.data.idPaciente,
       idNutricionista,
     });
 

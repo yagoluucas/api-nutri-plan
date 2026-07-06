@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import express from 'express';
 import { corsOptions } from './config/cors.js';
 import { recuperarAlimentosRouter } from './modules/alimentos/buscarAlimento.js';
@@ -25,6 +26,7 @@ app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
 app.use(cors(corsOptions));
+app.use(cookieParser());
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '3mb' }));
 
 // Apenas para testar o funcionamento da API
