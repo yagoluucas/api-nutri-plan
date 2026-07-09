@@ -8,6 +8,29 @@ import { IErrorCause } from '../../interfaces/errors/erros.js';
 
 const DEFAULT_AUTOCOMPLETE_LIMIT = 50;
 const MAX_AUTOCOMPLETE_LIMIT = 50;
+const MINIMUM_TERM_MATCH_RATIO = 0.8;
+const IGNORED_SEARCH_TERMS = new Set([
+    'a',
+    'as',
+    'ao',
+    'aos',
+    'com',
+    'da',
+    'das',
+    'de',
+    'do',
+    'dos',
+    'e',
+    'em',
+    'na',
+    'nas',
+    'no',
+    'nos',
+    'o',
+    'os',
+    'para',
+    'por'
+]);
 
 type AlimentoAutocomplete = Pick<IAlimento, 'codigoAlimento' | 'nomeAlimento'>;
 
@@ -31,6 +54,21 @@ function parseAutocompleteLimit(value: unknown): number {
 
 function escapeRegex(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function getRelevantSearchTerms(foodName: string): string[] {
+    const rawSearchTerms = foodName.split(' ').filter(word => word.trim() !== '');
+    const relevantSearchTerms = rawSearchTerms.filter(term => !IGNORED_SEARCH_TERMS.has(term.toLowerCase()));
+
+    return relevantSearchTerms.length > 0 ? relevantSearchTerms : rawSearchTerms;
+}
+
+function getMinimumRequiredTermMatches(totalTerms: number): number {
+    if (totalTerms <= 3) {
+        return totalTerms;
+    }
+
+    return Math.max(1, Math.floor(totalTerms * MINIMUM_TERM_MATCH_RATIO));
 }
 
 async function buscarAlimentoPeloCodigo(req: Request, res: Response, next: NextFunction) {
@@ -74,7 +112,10 @@ async function buscaAlimentoAutoComplete(req: Request, res: Response, next: Next
 
     const normalizedFoodName = foodName.trim().replace(/\s+/g, ' ');
     const normalizedFoodNameLower = normalizedFoodName.toLowerCase();
-    const searchTerms = normalizedFoodName.split(' ').filter(word => word.trim() !== '');
+    const searchTerms = getRelevantSearchTerms(normalizedFoodName);
+    const normalizedSearchPhrase = searchTerms.join(' ');
+    const normalizedSearchPhraseLower = normalizedSearchPhrase.toLowerCase();
+    const minimumRequiredTermMatches = getMinimumRequiredTermMatches(searchTerms.length);
     const page = parsePositiveInteger(req.query.page, 1);
     const limit = parseAutocompleteLimit(req.query.limit);
     const offset = (page - 1) * limit;
@@ -83,22 +124,43 @@ async function buscaAlimentoAutoComplete(req: Request, res: Response, next: Next
         await conectarAoBancoDeDados();
 
         const query = {
-            $and: searchTerms.map(term => ({
+            $or: searchTerms.map(term => ({
                 nomeAlimento: { $regex: escapeRegex(term), $options: "i" }
             }))
         };
 
         const escapedNormalizedFoodName = escapeRegex(normalizedFoodNameLower);
+        const escapedNormalizedSearchPhrase = escapeRegex(normalizedSearchPhraseLower);
         const escapedFirstTerm = escapeRegex(searchTerms[0].toLowerCase());
+        const escapedSearchTerms = searchTerms.map(term => escapeRegex(term.toLowerCase()));
 
         const alimentosRaw = await Alimento.aggregate<AlimentoAutocomplete>([
             { $match: query },
             {
                 $addFields: {
                     nomeAlimentoLower: { $toLower: "$nomeAlimento" },
+                    matchedTermsCount: {
+                        $add: escapedSearchTerms.map(term => ({
+                            $cond: [
+                                {
+                                    $regexMatch: {
+                                        input: { $toLower: "$nomeAlimento" },
+                                        regex: term
+                                    }
+                                },
+                                1,
+                                0
+                            ]
+                        }))
+                    },
                     exactMatchPriority: {
                         $cond: [
-                            { $eq: [{ $toLower: "$nomeAlimento" }, normalizedFoodNameLower] },
+                            {
+                                $or: [
+                                    { $eq: [{ $toLower: "$nomeAlimento" }, normalizedFoodNameLower] },
+                                    { $eq: [{ $toLower: "$nomeAlimento" }, normalizedSearchPhraseLower] }
+                                ]
+                            },
                             0,
                             1
                         ]
@@ -106,10 +168,20 @@ async function buscaAlimentoAutoComplete(req: Request, res: Response, next: Next
                     startsWithSearchPriority: {
                         $cond: [
                             {
-                                $regexMatch: {
-                                    input: { $toLower: "$nomeAlimento" },
-                                    regex: `^${escapedNormalizedFoodName}`
-                                }
+                                $or: [
+                                    {
+                                        $regexMatch: {
+                                            input: { $toLower: "$nomeAlimento" },
+                                            regex: `^${escapedNormalizedFoodName}`
+                                        }
+                                    },
+                                    {
+                                        $regexMatch: {
+                                            input: { $toLower: "$nomeAlimento" },
+                                            regex: `^${escapedNormalizedSearchPhrase}`
+                                        }
+                                    }
+                                ]
                             },
                             0,
                             1
@@ -130,10 +202,20 @@ async function buscaAlimentoAutoComplete(req: Request, res: Response, next: Next
                     wordBoundaryPriority: {
                         $cond: [
                             {
-                                $regexMatch: {
-                                    input: { $toLower: "$nomeAlimento" },
-                                    regex: `(^|[\\s,;()\\-/])${escapedNormalizedFoodName}(\\b|[\\s,;()\\-/])`
-                                }
+                                $or: [
+                                    {
+                                        $regexMatch: {
+                                            input: { $toLower: "$nomeAlimento" },
+                                            regex: `(^|[\\s,;()\\-/])${escapedNormalizedFoodName}(\\b|[\\s,;()\\-/])`
+                                        }
+                                    },
+                                    {
+                                        $regexMatch: {
+                                            input: { $toLower: "$nomeAlimento" },
+                                            regex: `(^|[\\s,;()\\-/])${escapedNormalizedSearchPhrase}(\\b|[\\s,;()\\-/])`
+                                        }
+                                    }
+                                ]
                             },
                             0,
                             1
@@ -142,12 +224,14 @@ async function buscaAlimentoAutoComplete(req: Request, res: Response, next: Next
                     nameLength: { $strLenCP: "$nomeAlimento" }
                 }
             },
+            { $match: { matchedTermsCount: { $gte: minimumRequiredTermMatches } } },
             {
                 $sort: {
                     exactMatchPriority: 1,
                     startsWithSearchPriority: 1,
                     firstTermAtStartPriority: 1,
                     wordBoundaryPriority: 1,
+                    matchedTermsCount: -1,
                     nameLength: 1,
                     nomeAlimento: 1
                 }
