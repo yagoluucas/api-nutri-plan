@@ -4,7 +4,7 @@ import bcrypt from "bcrypt"
 
 const nutricionistaSchema = new Schema<INutricionista, NutricionistaModel, INutricionistaMethods>(
     {
-        crn: { type: String, required: true, trim: true, minLength: 8 },
+        crn: { type: String, required: true, trim: true, minLength: 5 },
         nome: { type: String, required: true, trim: true, minLength: 2 },
         sobrenome: { type: String, required: true, trim: true, minlength: 2 },
         email: { type: String, required: true, trim: true, lowercase: true, match: [/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, "Email incorreto, valide e tente novamente."] },

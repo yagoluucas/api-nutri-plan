@@ -13,7 +13,7 @@ const imagemPerfilBase64Schema = z
     );
 
 const INutricionistaSchema = IUsuarioSchema.extend({
-    crn: z.string().trim().min(8, "O CRN deve ter no mínimo 8 caracteres").max(15, "O CRN deve ter no máximo 15 caracteres"),
+    crn: z.string().trim().min(5, "O CRN deve ter no mínimo 5 caracteres").max(15, "O CRN deve ter no máximo 15 caracteres"),
     senha: z.string().min(8, { message: "Senha deve ter pelo menos 8 caracteres" }).max(20, { message: "Senha deve ter no máximo 20 caracteres" })
     ,
     imagemPerfil: imagemPerfilBase64Schema.optional(),
