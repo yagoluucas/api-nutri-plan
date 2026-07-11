@@ -12,7 +12,10 @@ import {
   buscarPacienteAutorizado,
   getIdNutricionistaAutenticado,
 } from "../pacientes/pacienteHelpers.js";
-import { normalizarPlanoAlimentar } from "./planoAlimentarHelpers.js";
+import {
+  normalizarPlanoAlimentar,
+  protegerPlanoAlimentar,
+} from "./planoAlimentarHelpers.js";
 
 async function cadastrarPlanoAlimentar(req: Request, next: NextFunction) {
   const params = IPlanoAlimentarPacienteParamsSchema.safeParse(req.params);
@@ -51,7 +54,7 @@ async function cadastrarPlanoAlimentar(req: Request, next: NextFunction) {
     const idPlano = new mongoose.Types.ObjectId();
     const planoCriado = {
       _id: idPlano,
-      ...planoSafe.data.planoAlimentar,
+      ...protegerPlanoAlimentar(planoSafe.data.planoAlimentar),
     };
 
     await Paciente.updateOne(
