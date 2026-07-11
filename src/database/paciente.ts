@@ -1,173 +1,252 @@
-// Destinado ao cadastro de paciente
-
 import mongoose, { Schema } from "mongoose";
-import { IPacienteDB, IPacienteMethods, PacienteModel } from "../interfaces/usuarios/pacienteInterfaces";
-import type { IErrorCause } from "../interfaces/errors/erros.js";
-import crypto from "crypto";
+import {
+  IPacienteDB,
+  IPacienteMethods,
+  IPacienteSchema,
+  PacienteModel,
+} from "../interfaces/usuarios/pacienteInterfaces.js";
+import { IPlanoAlimentarSchema } from "../interfaces/planoAlimentar/planoAlimentarInterfaces.js";
+import {
+  decryptJson,
+  decryptString,
+  encryptJson,
+  encryptStringIfNeeded,
+  isAesGcmEncrypted,
+  PATIENT_DIET_PLAN_CONTEXT,
+} from "../utils/encryption.js";
 
-// Chave AES-256: deve ser 32 bytes (64 caracteres hexadecimais) definida no .env
-const ALGORITHM = "aes-256-cbc";
-const IV_LENGTH = 16;
+const PATIENT_FIELD_CONTEXTS = {
+  nome: "paciente:nome",
+  sobrenome: "paciente:sobrenome",
+  email: "paciente:email",
+  dataNascimento: "paciente:data-nascimento",
+  sexo: "paciente:sexo",
+  observacoes: "paciente:observacoes",
+} as const;
 
-function encryptionConfigError(message: string) {
-    return new Error(message, {
-        cause: {
-            cause: "Internal Server Error",
-            internalCause: "Unexpected Error",
-            statusCode: 500,
-        } as IErrorCause,
-    });
-}
-
-function getSecretKey(): Buffer {
-    const encryptionKey = process.env.ENCRYPTION_KEY;
-
-    if (!encryptionKey) {
-        throw encryptionConfigError("ENCRYPTION_KEY nao configurada.");
-    }
-
-    const secretKey = Buffer.from(encryptionKey, "hex");
-
-    if (secretKey.length !== 32) {
-        throw encryptionConfigError("ENCRYPTION_KEY deve ter 32 bytes em hexadecimal.");
-    }
-
-    return secretKey;
-}
-
-function encrypt(text: string): string {
-    const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv(ALGORITHM, getSecretKey(), iv);
-    const encrypted = Buffer.concat([cipher.update(text), cipher.final()]);
-    return `${iv.toString("hex")}:${encrypted.toString("hex")}`;
-}
-
-function decrypt(text: string): string {
-    const [ivHex, encryptedHex] = text.split(":");
-    const iv = Buffer.from(ivHex, "hex");
-    const encrypted = Buffer.from(encryptedHex, "hex");
-    const decipher = crypto.createDecipheriv(ALGORITHM, getSecretKey(), iv);
-    return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString();
-}
-
-function isEncryptedValue(value: string) {
-    const [ivHex, encryptedHex] = value.split(":");
-
-    return (
-        /^[a-fA-F0-9]{32}$/.test(ivHex ?? "") &&
-        /^[a-fA-F0-9]+$/.test(encryptedHex ?? "") &&
-        encryptedHex.length % 2 === 0
-    );
-}
-
-function decryptIfEncrypted(value: string): string {
-    if (!isEncryptedValue(value)) {
-        return value;
-    }
-
-    return decrypt(value);
-}
-
-function hasAtLeastOneItem(value: unknown[]) {
-    return Array.isArray(value) && value.length > 0;
-}
+type PlanoAlimentarPersistidoDocumento = {
+  conteudoProtegido?: string;
+  objetivoDoPlano?: string;
+  observacoesGerais?: string;
+  refeicoes?: unknown[];
+  set?: (path: string, value: unknown) => void;
+  toObject?: () => Record<string, unknown>;
+};
 
 const medidaSelecionadaSchema = new Schema(
-    {
-        nomeMedida: { type: String, required: true },
-        total: { type: Number, required: true, min: Number.MIN_VALUE },
-        unidadeMedida: { type: String, required: true },
-        tipoMedida: { type: String, enum: ["Caseira", "Tecnica"], required: true },
+  {
+    nomeMedida: { type: String, required: true },
+    total: { type: Number, required: true, min: Number.MIN_VALUE },
+    unidadeMedida: { type: String, required: true },
+    tipoMedida: {
+      type: String,
+      enum: ["Caseira", "Tecnica"],
+      required: true,
     },
-    { _id: false },
+  },
+  { _id: false },
 );
 
 const alimentoPlanoSchema = new Schema(
-    {
-        codigoAlimento: { type: String, required: true },
-        quantidade: { type: Number, required: true, min: Number.MIN_VALUE },
-        medidaSelecionada: { type: medidaSelecionadaSchema, required: true },
-    },
-    { _id: false },
+  {
+    codigoAlimento: { type: String, required: true },
+    quantidade: { type: Number, required: true, min: Number.MIN_VALUE },
+    medidaSelecionada: { type: medidaSelecionadaSchema, required: true },
+  },
+  { _id: false },
 );
 
 const refeicaoPlanoSchema = new Schema(
-    {
-        nome: { type: String, required: true, trim: true, minLength: 1, maxLength: 30 },
-        horario: { type: String, required: true, match: /^([01][0-9]|2[0-3]):[0-5][0-9]$/ },
-        observacoes: { type: String },
-        alimentos: {
-            type: [alimentoPlanoSchema],
-            required: true,
-            validate: {
-                validator: hasAtLeastOneItem,
-                message: "A refeicao deve ter pelo menos 1 alimento",
-            },
-        },
-    },
-    { _id: false },
+  {
+    nome: { type: String, trim: true },
+    horario: { type: String },
+    observacoes: { type: String },
+    alimentos: { type: [alimentoPlanoSchema] },
+  },
+  { _id: false },
 );
 
 const planoAlimentarSchema = new Schema(
-    {
-        objetivoDoPlano: { type: String },
-        observacoesGerais: { type: String },
-        refeicoes: {
-            type: [refeicaoPlanoSchema],
-            required: true,
-            validate: {
-                validator: hasAtLeastOneItem,
-                message: "O plano alimentar deve ter pelo menos 1 refeicao",
-            },
-        },
-    },
-    { _id: true },
+  {
+    conteudoProtegido: { type: String },
+    // Campos legados temporarios. Sao removidos quando o documento e salvo.
+    objetivoDoPlano: { type: String },
+    observacoesGerais: { type: String },
+    refeicoes: { type: [refeicaoPlanoSchema] },
+  },
+  { _id: true },
 );
 
 const pacienteSchema = new Schema<IPacienteDB, PacienteModel, IPacienteMethods>(
-    {
-        idNutricionista: { type: String, required: true, trim: true, index: true },
-        nome: { type: String, required: true, trim: true, minLength: 2 },
-        sobrenome: { type: String, required: true, trim: true, minLength: 2 },
-        email: { type: String },
-        dataNascimento: { type: String },
-        sexo: { type: String, enum: ["Masculino", "Feminino", "Outro"], required: true, trim: true, minLength: 2 },
-        observacoes: { type: String, trim: true, maxLength: 1000 },
-        planosAlimentares: { type: [planoAlimentarSchema], default: [] },
-    },
-    {
-        timestamps: true,
-    }
+  {
+    idNutricionista: { type: String, required: true, trim: true, index: true },
+    nome: { type: String, required: true },
+    sobrenome: { type: String, required: true },
+    email: { type: String },
+    dataNascimento: { type: String },
+    sexo: { type: String, required: true },
+    observacoes: { type: String },
+    planosAlimentares: { type: [planoAlimentarSchema], default: [] },
+  },
+  {
+    timestamps: true,
+  },
 );
 
-// Criptografa antes de salvar (mesmo padrão do bcrypt no nutricionista)
-pacienteSchema.pre("save", function () {
-    if (this.isModified("email") && this.email) {
-        this.email = encrypt(this.email);
+function protegerCampoPaciente(
+  paciente: mongoose.HydratedDocument<IPacienteDB, IPacienteMethods>,
+  campo: keyof typeof PATIENT_FIELD_CONTEXTS,
+) {
+  const valor = paciente.get(campo);
+
+  if (typeof valor !== "string" || valor.length === 0) {
+    return;
+  }
+
+  paciente.set(
+    campo,
+    encryptStringIfNeeded(valor, PATIENT_FIELD_CONTEXTS[campo]),
+  );
+}
+
+function getPlanoPersistido(plano: PlanoAlimentarPersistidoDocumento) {
+  return typeof plano.toObject === "function" ? plano.toObject() : plano;
+}
+
+function protegerPlanosAlimentares(
+  paciente: mongoose.HydratedDocument<IPacienteDB, IPacienteMethods>,
+) {
+  const planos = (paciente.planosAlimentares ?? []) as unknown as
+    PlanoAlimentarPersistidoDocumento[];
+  let houveAlteracao = false;
+
+  for (const plano of planos) {
+    const planoPersistido = getPlanoPersistido(plano);
+    const conteudoProtegido = planoPersistido.conteudoProtegido;
+
+    if (
+      typeof conteudoProtegido === "string" &&
+      isAesGcmEncrypted(conteudoProtegido)
+    ) {
+      continue;
     }
 
-    if (this.isModified("dataNascimento") && this.dataNascimento) {
-        this.dataNascimento = encrypt(String(this.dataNascimento));
+    const planoValidado =
+      typeof conteudoProtegido === "string"
+        ? IPlanoAlimentarSchema.parse(
+            decryptJson<unknown>(conteudoProtegido, PATIENT_DIET_PLAN_CONTEXT),
+          )
+        : IPlanoAlimentarSchema.parse({
+            objetivoDoPlano: planoPersistido.objetivoDoPlano,
+            observacoesGerais: planoPersistido.observacoesGerais,
+            refeicoes: planoPersistido.refeicoes,
+          });
+
+    const novoConteudoProtegido = encryptJson(
+      planoValidado,
+      PATIENT_DIET_PLAN_CONTEXT,
+    );
+
+    if (typeof plano.set === "function") {
+      plano.set("conteudoProtegido", novoConteudoProtegido);
+      plano.set("objetivoDoPlano", undefined);
+      plano.set("observacoesGerais", undefined);
+      plano.set("refeicoes", undefined);
+    } else {
+      plano.conteudoProtegido = novoConteudoProtegido;
+      delete plano.objetivoDoPlano;
+      delete plano.observacoesGerais;
+      delete plano.refeicoes;
     }
+
+    houveAlteracao = true;
+  }
+
+  if (houveAlteracao) {
+    paciente.markModified("planosAlimentares");
+  }
+}
+
+function getCampoCriptografadoObrigatorio(
+  valor: unknown,
+  nomeCampo: string,
+) {
+  if (typeof valor !== "string" || valor.length === 0) {
+    throw new Error(`Campo criptografado invalido: ${nomeCampo}.`);
+  }
+
+  return valor;
+}
+
+function getCampoCriptografadoOpcional(valor: unknown) {
+  return typeof valor === "string" && valor.length > 0 ? valor : undefined;
+}
+
+pacienteSchema.pre("save", function () {
+  protegerCampoPaciente(this, "nome");
+  protegerCampoPaciente(this, "sobrenome");
+  protegerCampoPaciente(this, "email");
+  protegerCampoPaciente(this, "dataNascimento");
+  protegerCampoPaciente(this, "sexo");
+  protegerCampoPaciente(this, "observacoes");
+  protegerPlanosAlimentares(this);
 });
 
-// Métodos para descriptografar ao ler os dados
-pacienteSchema.methods.getEmailDescriptografado = function (): string | undefined {
-    if (!this.email) {
-        return undefined;
-    }
-
-    return decryptIfEncrypted(this.email);
+pacienteSchema.methods.getNomeDescriptografado = function () {
+  return decryptString(
+    getCampoCriptografadoObrigatorio(this.nome, "nome"),
+    PATIENT_FIELD_CONTEXTS.nome,
+  );
 };
 
-pacienteSchema.methods.getDataNascimentoDescriptografada = function (): Date | undefined {
-    if (!this.dataNascimento) {
-        return undefined;
-    }
-
-    return new Date(decryptIfEncrypted(this.dataNascimento));
+pacienteSchema.methods.getSobrenomeDescriptografado = function () {
+  return decryptString(
+    getCampoCriptografadoObrigatorio(this.sobrenome, "sobrenome"),
+    PATIENT_FIELD_CONTEXTS.sobrenome,
+  );
 };
 
-const Paciente = mongoose.model<IPacienteDB, PacienteModel>("Paciente", pacienteSchema);
+pacienteSchema.methods.getEmailDescriptografado = function () {
+  const email = getCampoCriptografadoOpcional(this.email);
+
+  return email
+    ? decryptString(email, PATIENT_FIELD_CONTEXTS.email)
+    : undefined;
+};
+
+pacienteSchema.methods.getDataNascimentoDescriptografada = function () {
+  const dataNascimento = getCampoCriptografadoOpcional(this.dataNascimento);
+
+  return dataNascimento
+    ? new Date(
+        decryptString(
+          dataNascimento,
+          PATIENT_FIELD_CONTEXTS.dataNascimento,
+        ),
+      )
+    : undefined;
+};
+
+pacienteSchema.methods.getSexoDescriptografado = function () {
+  return IPacienteSchema.shape.sexo.parse(
+    decryptString(
+      getCampoCriptografadoObrigatorio(this.sexo, "sexo"),
+      PATIENT_FIELD_CONTEXTS.sexo,
+    ),
+  );
+};
+
+pacienteSchema.methods.getObservacoesDescriptografadas = function () {
+  const observacoes = getCampoCriptografadoOpcional(this.observacoes);
+
+  return observacoes
+    ? decryptString(observacoes, PATIENT_FIELD_CONTEXTS.observacoes)
+    : undefined;
+};
+
+const Paciente = mongoose.model<IPacienteDB, PacienteModel>(
+  "Paciente",
+  pacienteSchema,
+);
 
 export default Paciente;

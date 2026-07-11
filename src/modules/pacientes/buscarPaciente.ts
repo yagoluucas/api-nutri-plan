@@ -8,7 +8,10 @@ import {
   IRetornoPacientesSchema,
 } from "../../interfaces/usuarios/pacienteInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
-import { isPlanoAlimentarValido } from "../planoAlimentar/planoAlimentarHelpers.js";
+import {
+  descriptografarPlanoAlimentar,
+  isPlanoAlimentarValido,
+} from "../planoAlimentar/planoAlimentarHelpers.js";
 import { formatDateOnly } from "../../utils/utils.js";
 import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
 
@@ -24,18 +27,15 @@ async function buscarPacientes(req: Request, next: NextFunction) {
 
     const pacientesRecuperados = await Paciente.find({
       idNutricionista,
-    }).sort({ nome: 1, sobrenome: 1, createdAt: -1 });
+    }).sort({ createdAt: -1 });
 
-    return IRetornoPacientesSchema.parse({
-      message: "Pacientes recuperados com sucesso",
-      error: false,
-      statusCode: 200,
-      pacientes: pacientesRecuperados.map((paciente) => ({
+    const pacientes = pacientesRecuperados
+      .map((paciente) => ({
         id: String(paciente._id),
-        nome: paciente.nome,
-        sobrenome: paciente.sobrenome,
+        nome: paciente.getNomeDescriptografado(),
+        sobrenome: paciente.getSobrenomeDescriptografado(),
         email: paciente.getEmailDescriptografado(),
-        sexo: paciente.sexo,
+        sexo: paciente.getSexoDescriptografado(),
         createdAt:
           paciente.createdAt?.toISOString() ?? new Date().toISOString(),
         updatedAt:
@@ -43,7 +43,28 @@ async function buscarPacientes(req: Request, next: NextFunction) {
         qtdPlanos: (paciente.planosAlimentares ?? []).filter(
           isPlanoAlimentarValido,
         ).length,
-      })),
+      }))
+      .sort((primeiroPaciente, segundoPaciente) => {
+        const comparacaoNome = primeiroPaciente.nome.localeCompare(
+          segundoPaciente.nome,
+          "pt-BR",
+          { sensitivity: "base" },
+        );
+
+        return comparacaoNome !== 0
+          ? comparacaoNome
+          : primeiroPaciente.sobrenome.localeCompare(
+              segundoPaciente.sobrenome,
+              "pt-BR",
+              { sensitivity: "base" },
+            );
+      });
+
+    return IRetornoPacientesSchema.parse({
+      message: "Pacientes recuperados com sucesso",
+      error: false,
+      statusCode: 200,
+      pacientes,
     });
   } catch (error) {
     console.log(`[Recuperar Pacientes] - Error: ${error}`);
@@ -88,6 +109,9 @@ async function buscarPaciente(req: Request, next: NextFunction) {
 
     const dataNascimento =
       pacienteRecuperado.getDataNascimentoDescriptografada();
+    const planosAlimentares = (pacienteRecuperado.planosAlimentares ?? [])
+      .filter(isPlanoAlimentarValido)
+      .map(descriptografarPlanoAlimentar);
 
     return IRetornoPacienteSchema.parse({
       message: "Paciente recuperado com sucesso",
@@ -96,15 +120,13 @@ async function buscarPaciente(req: Request, next: NextFunction) {
       paciente: {
         id: String(pacienteRecuperado._id),
         idNutricionista: pacienteRecuperado.idNutricionista,
-        nome: pacienteRecuperado.nome,
-        sobrenome: pacienteRecuperado.sobrenome,
+        nome: pacienteRecuperado.getNomeDescriptografado(),
+        sobrenome: pacienteRecuperado.getSobrenomeDescriptografado(),
         email: pacienteRecuperado.getEmailDescriptografado(),
         dataNascimento: formatDateOnly(dataNascimento),
-        sexo: pacienteRecuperado.sexo,
-        observacoes: pacienteRecuperado.observacoes,
-        planosAlimentares: (pacienteRecuperado.planosAlimentares ?? []).filter(
-          isPlanoAlimentarValido,
-        ),
+        sexo: pacienteRecuperado.getSexoDescriptografado(),
+        observacoes: pacienteRecuperado.getObservacoesDescriptografadas(),
+        planosAlimentares,
         createdAt:
           pacienteRecuperado.createdAt?.toISOString() ??
           new Date().toISOString(),
