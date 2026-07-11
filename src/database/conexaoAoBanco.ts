@@ -1,6 +1,7 @@
 // src/database/index.ts
 import { setServers } from 'node:dns';
 import mongoose from 'mongoose';
+import { logger } from '../utils/logger.js';
 
 function configurarServidoresDns() {
     const dnsServers = process.env.DNS_SERVERS
@@ -35,10 +36,15 @@ export async function conectarAoBancoDeDados() {
         // 2. Conecta usando o Mongoose
         await mongoose.connect(uri, databaseName ? { dbName: databaseName } : undefined);
 
-        console.log("Conexão com MongoDB estabelecida com sucesso via Mongoose!");
+        logger.info("database_connected", {
+            provider: "mongodb",
+            databaseConfigured: Boolean(databaseName),
+        });
         return mongoose.connection;
     } catch (error) {
-        console.error("Erro ao conectar no banco de dados com Mongoose:", error);
+        logger.error("database_connection_failed", error, {
+            provider: "mongodb",
+        });
         throw error;
     }
 }
