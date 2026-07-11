@@ -1,12 +1,13 @@
 import { NextFunction, Request, Router } from "express";
 import mongoose from "mongoose";
-import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco";
-import { getIdNutricionistaAutenticado } from "./nutricionistaHelpers";
-import Nutricionista from "../../database/nutricionista";
-import { IErrorCause } from "../../interfaces/errors/erros";
-import { IRetornoApiSchema } from "../../interfaces/generalInterfaces";
-import { authMiddleware } from "../../middlewares/auth";
-import Paciente from "../../database/paciente";
+import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
+import { getIdNutricionistaAutenticado } from "./nutricionistaHelpers.js";
+import Nutricionista from "../../database/nutricionista.js";
+import { IErrorCause } from "../../interfaces/errors/erros.js";
+import { IRetornoApiSchema } from "../../interfaces/generalInterfaces.js";
+import { authMiddleware } from "../../middlewares/auth.js";
+import Paciente from "../../database/paciente.js";
+import Sessao from "../../database/sessao.js";
 
 async function deletarNutricionista(req: Request, next: NextFunction) {
   try {
@@ -28,7 +29,7 @@ async function deletarNutricionista(req: Request, next: NextFunction) {
         );
 
         if (!nutricionistaDeletado) {
-          throw new Error("Nutricionista não encontrado", {
+          throw new Error("Nutricionista nao encontrado", {
             cause: {
               cause: "Not Found",
               internalCause: "Data Not Found",
@@ -39,6 +40,11 @@ async function deletarNutricionista(req: Request, next: NextFunction) {
 
         const pacientesDeletados = await Paciente.deleteMany(
           { idNutricionista },
+          { session },
+        );
+
+        await Sessao.deleteMany(
+          { nutricionistaId: idNutricionista },
           { session },
         );
 
@@ -71,7 +77,6 @@ async function deletarNutricionista(req: Request, next: NextFunction) {
       await session.endSession();
     }
   } catch (error) {
-    console.log(`[Deletar Nutricionista] - Error: ${error}`);
     next(error);
   }
 }
