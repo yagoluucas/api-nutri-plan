@@ -1,88 +1,103 @@
-import jwt from "jsonwebtoken"
-import { Request, Response, NextFunction } from "express";
-import { isValidString } from "../utils/utils.js";
+import { NextFunction, Request, Response } from "express";
 import Nutricionista from "../database/nutricionista.js";
-import { ITokenPayloadSchema } from "../interfaces/auth/authInterfaces.js";
-import { INutricionistaSchema } from "../interfaces/usuarios/nutricionistaInterfaces.js";
 import { conectarAoBancoDeDados } from "../database/conexaoAoBanco.js";
 import { IErrorCause } from "../interfaces/errors/erros.js";
+import { INutricionistaSchema } from "../interfaces/usuarios/nutricionistaInterfaces.js";
+import { sessaoEstaAtiva } from "../modules/auth/sessionService.js";
+import { verificarAccessToken } from "../utils/authTokens.js";
+import { isValidString } from "../utils/utils.js";
 
-const AUTH_COOKIE_NAMES = ["accessToken", "__Host-accessToken", "nutriplan_token"];
+const AUTH_COOKIE_NAMES = [
+  "accessToken",
+  "__Host-accessToken",
+  "nutriplan_token",
+];
 
-function getBearerToken(req: Request) {
-    const authHeader = req.headers?.authorization;
-
-    if (isValidString(authHeader)) {
-        const [bearer, token] = authHeader.split(" ");
-
-        if (isValidString(bearer) && bearer === "Bearer" && isValidString(token)) {
-            return token;
-        }
-    }
-
-    for (const cookieName of AUTH_COOKIE_NAMES) {
-        const token = req.cookies?.[cookieName];
-
-        if (isValidString(token)) {
-            return token;
-        }
-    }
-
-    return null;
+function authenticationError() {
+  return new Error("Nao autorizado", {
+    cause: {
+      cause: "Authentication Failed",
+      internalCause: "Invalid Token",
+      statusCode: 401,
+    } as IErrorCause,
+  });
 }
 
-async function authMiddleware(req: Request, res: Response, next: NextFunction) {
-    try {
-        const token = getBearerToken(req);
+function getBearerToken(req: Request) {
+  const authHeader = req.headers?.authorization;
 
-        if (!isValidString(token)) {
-            next(new Error("Não autorizado", {cause: {cause: "Authentication Failed", statusCode: 401} as IErrorCause}));
-            return;
-        }
+  if (isValidString(authHeader)) {
+    const [bearer, token] = authHeader.split(" ");
 
-        const jwtSecret = process.env.JWT_SECRET;
-
-        if (!isValidString(jwtSecret)) {
-            next(new Error("Erro interno do servidor", {cause: {cause: "Internal Server Error", statusCode: 500} as IErrorCause}));
-            return;
-        }
-
-        let decoded;
-
-        try {
-            decoded = jwt.verify(token, jwtSecret);
-        } catch (error) {
-            next(new Error("Não autorizado", {cause: {cause: "Authentication Failed", statusCode: 401} as IErrorCause}));
-            return;
-        }
-
-        const parsedToken = ITokenPayloadSchema.safeParse(decoded);
-
-        if (!parsedToken.success) {
-            next(new Error("Não autorizado", {cause: {cause: "Authentication Failed", statusCode: 401} as IErrorCause}));
-            return;
-        }
-
-        const id = parsedToken.data?.id;
-
-        await conectarAoBancoDeDados();
-
-        const parsedUser = INutricionistaSchema.partial().safeParse(await Nutricionista.findById(id));
-
-        if (!parsedUser.success) {
-            next(new Error("Não autorizado", {cause: {cause: "Authentication Failed", statusCode: 401} as IErrorCause}));
-            return;
-        }
-
-        req.user = parsedUser.data;
-        req.nutricionistaId = id;
-        next();
-
-
-    } catch (error) {
-        console.log(`[AuthMiddleware] - Error: ${error}`);
-        next(error);
+    if (
+      isValidString(bearer) &&
+      bearer.toLowerCase() === "bearer" &&
+      isValidString(token)
+    ) {
+      return token;
     }
+  }
+
+  for (const cookieName of AUTH_COOKIE_NAMES) {
+    const token = req.cookies?.[cookieName];
+
+    if (isValidString(token)) {
+      return token;
+    }
+  }
+
+  return null;
+}
+
+async function authMiddleware(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+) {
+  try {
+    const token = getBearerToken(req);
+
+    if (!token) {
+      next(authenticationError());
+      return;
+    }
+
+    let parsedToken;
+
+    try {
+      parsedToken = verificarAccessToken(token);
+    } catch {
+      next(authenticationError());
+      return;
+    }
+
+    await conectarAoBancoDeDados();
+
+    const activeSession = await sessaoEstaAtiva(
+      parsedToken.sessionId,
+      parsedToken.id,
+    );
+
+    if (!activeSession) {
+      next(authenticationError());
+      return;
+    }
+
+    const parsedUser = INutricionistaSchema.partial().safeParse(
+      await Nutricionista.findById(parsedToken.id),
+    );
+
+    if (!parsedUser.success) {
+      next(authenticationError());
+      return;
+    }
+
+    req.user = parsedUser.data;
+    req.nutricionistaId = parsedToken.id;
+    next();
+  } catch (error) {
+    next(error);
+  }
 }
 
 export { authMiddleware };
