@@ -10,6 +10,17 @@ export const IPlanoAlimentarSchema = z.object({
 
 export type IPlanoAlimentar = z.infer<typeof IPlanoAlimentarSchema>;
 
+// Estrutura interna persistida no MongoDB. Os campos legados permanecem opcionais
+// apenas para permitir leitura e conversao segura dos registros ja existentes.
+export const IPlanoAlimentarPersistidoSchema = z.object({
+    conteudoProtegido: z.string().optional(),
+    objetivoDoPlano: z.string().optional(),
+    observacoesGerais: z.string().optional(),
+    refeicoes: z.array(IRefeicoesSchema).optional(),
+});
+
+export type IPlanoAlimentarPersistido = z.infer<typeof IPlanoAlimentarPersistidoSchema>;
+
 export const IPlanoAlimentarRetornoSchema = IPlanoAlimentarSchema.extend({
     id: z.string().min(1),
 });
