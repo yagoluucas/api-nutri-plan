@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { IUsuarioSchema } from "./usuarioInterfaces";
-import { IPlanoAlimentarSchema } from "../planoAlimentar/planoAlimentarInterfaces";
+import {
+  IPlanoAlimentarPersistidoSchema,
+  IPlanoAlimentarSchema,
+} from "../planoAlimentar/planoAlimentarInterfaces";
 import { Model } from "mongoose";
 import { IRetornoApiSchema } from "../generalInterfaces";
 
@@ -59,12 +62,26 @@ export const IPacienteSchema = IUsuarioSchema.pick({
 
 export type IPaciente = z.infer<typeof IPacienteSchema>;
 
+// O contrato da API continua usando dados em texto claro. Esta estrutura representa
+// somente o formato interno armazenado pelo Mongoose, onde os campos sensiveis ficam
+// cifrados e os planos sao persistidos como payloads AES-GCM.
 export const IPacienteDBSchema = IPacienteSchema.omit({
+  nome: true,
+  sobrenome: true,
   email: true,
   dataNascimento: true,
+  sexo: true,
+  observacoes: true,
+  planosAlimentares: true,
+  evolucao: true,
 }).extend({
+  nome: z.string(),
+  sobrenome: z.string(),
   email: z.string().optional(),
   dataNascimento: z.string().optional(),
+  sexo: z.string(),
+  observacoes: z.string().optional(),
+  planosAlimentares: z.array(IPlanoAlimentarPersistidoSchema).optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
 });
@@ -72,8 +89,12 @@ export const IPacienteDBSchema = IPacienteSchema.omit({
 export type IPacienteDB = z.infer<typeof IPacienteDBSchema>;
 
 export interface IPacienteMethods {
+  getNomeDescriptografado(): string;
+  getSobrenomeDescriptografado(): string;
   getEmailDescriptografado(): string | undefined;
   getDataNascimentoDescriptografada(): Date | undefined;
+  getSexoDescriptografado(): "Masculino" | "Feminino" | "Outro";
+  getObservacoesDescriptografadas(): string | undefined;
 }
 
 export const ICadastrarPacienteInputSchema = IPacienteSchema.omit({

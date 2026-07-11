@@ -4,6 +4,7 @@ import Paciente from "../../database/paciente.js";
 import {
   IAtualizarPlanoAlimentarRequestSchema,
   IPlanoAlimentarParamsSchema,
+  IPlanoAlimentarSchema,
   IRetornoPlanoAlimentarSchema,
 } from "../../interfaces/planoAlimentar/planoAlimentarInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
@@ -13,8 +14,10 @@ import {
 } from "../pacientes/pacienteHelpers.js";
 import {
   buscarIndicePlanoAlimentar,
+  descriptografarPlanoAlimentar,
   nextPlanoAlimentarNaoEncontrado,
   normalizarPlanoAlimentar,
+  protegerPlanoAlimentar,
 } from "./planoAlimentarHelpers.js";
 
 async function atualizarPlanoAlimentar(req: Request, next: NextFunction) {
@@ -62,23 +65,14 @@ async function atualizarPlanoAlimentar(req: Request, next: NextFunction) {
       return;
     }
 
-    const planoAtualizacao = planoSafe.data.planoAlimentar;
-    const planoAlimentarUpdate: Record<string, unknown> = {};
-
-    if (planoAtualizacao.objetivoDoPlano !== undefined) {
-      planoAlimentarUpdate["planosAlimentares.$.objetivoDoPlano"] =
-        planoAtualizacao.objetivoDoPlano;
-    }
-
-    if (planoAtualizacao.observacoesGerais !== undefined) {
-      planoAlimentarUpdate["planosAlimentares.$.observacoesGerais"] =
-        planoAtualizacao.observacoesGerais;
-    }
-
-    if (planoAtualizacao.refeicoes !== undefined) {
-      planoAlimentarUpdate["planosAlimentares.$.refeicoes"] =
-        planoAtualizacao.refeicoes;
-    }
+    const planoAtual = descriptografarPlanoAlimentar(
+      planosAlimentares[indicePlano],
+    );
+    const planoAtualizado = IPlanoAlimentarSchema.parse({
+      ...planoAtual,
+      ...planoSafe.data.planoAlimentar,
+    });
+    const planoProtegido = protegerPlanoAlimentar(planoAtualizado);
 
     const pacienteAtualizado = await Paciente.findOneAndUpdate(
       {
@@ -87,7 +81,15 @@ async function atualizarPlanoAlimentar(req: Request, next: NextFunction) {
         "planosAlimentares._id": params.data.idPlano,
       },
       {
-        $set: planoAlimentarUpdate,
+        $set: {
+          "planosAlimentares.$.conteudoProtegido":
+            planoProtegido.conteudoProtegido,
+        },
+        $unset: {
+          "planosAlimentares.$.objetivoDoPlano": "",
+          "planosAlimentares.$.observacoesGerais": "",
+          "planosAlimentares.$.refeicoes": "",
+        },
       },
       {
         returnDocument: "after",
@@ -100,7 +102,8 @@ async function atualizarPlanoAlimentar(req: Request, next: NextFunction) {
       return;
     }
 
-    const planosAlimentaresAtualizados = pacienteAtualizado.planosAlimentares ?? [];
+    const planosAlimentaresAtualizados =
+      pacienteAtualizado.planosAlimentares ?? [];
     const indicePlanoAtualizado = buscarIndicePlanoAlimentar(
       planosAlimentaresAtualizados,
       params.data.idPlano,
