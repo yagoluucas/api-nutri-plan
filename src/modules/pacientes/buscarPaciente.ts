@@ -35,7 +35,9 @@ async function buscarPacientes(req: Request, next: NextFunction) {
         nome: paciente.getNomeDescriptografado(),
         sobrenome: paciente.getSobrenomeDescriptografado(),
         email: paciente.getEmailDescriptografado(),
-        sexo: paciente.getSexoDescriptografado(),
+        dataNascimento: formatDateOnly(
+          paciente.getDataNascimentoDescriptografada(),
+        ),
         createdAt:
           paciente.createdAt?.toISOString() ?? new Date().toISOString(),
         updatedAt:

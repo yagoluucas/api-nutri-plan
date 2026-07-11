@@ -150,13 +150,15 @@ export const IPacienteListaItemSchema = IPacienteSchema.pick({
   nome: true,
   sobrenome: true,
   email: true,
-  sexo: true,
-}).extend({
-  id: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-  qtdPlanos: z.number(),
-});
+})
+  .extend({
+    id: z.string(),
+    dataNascimento: z.string().optional(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+    qtdPlanos: z.number(),
+  })
+  .strict();
 
 export const IRetornoPacienteSchema = IRetornoApiSchema.extend({
   paciente: IPacienteRetornoSchema,
