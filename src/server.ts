@@ -19,6 +19,9 @@ import { cadastrarPacienteRouter } from './modules/pacientes/cadastrarPaciente.j
 import { deletarPacienteRouter } from './modules/pacientes/deletarPaciente.js';
 import { deletarNutricionistaRouter } from './modules/nutricionista/deleterNutricionista.js';
 import helmet from 'helmet';
+import { installConsoleRedaction, logger } from './utils/logger.js';
+
+installConsoleRedaction();
 
 const app = express();
 const port = Number(process.env.PORT) || 5000;
@@ -48,7 +51,6 @@ app.get("/health", (req, res) => {
     });
 });
 
-
 app.use("/alimentos", recuperarAlimentosRouter)
 app.use("/alimentos", cadastrarAlimentosRouter)
 
@@ -72,5 +74,5 @@ app.use("/auth", authRouter)
 app.use(globalErrorHandle)
 
 app.listen(port, '0.0.0.0', () => {
-    console.log(`Servidor rodando na porta ${port}`)
+    logger.info("server_started", { port });
 })
