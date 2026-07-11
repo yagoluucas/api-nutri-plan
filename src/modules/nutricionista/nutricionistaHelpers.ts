@@ -51,6 +51,7 @@ function normalizarPerfilNutricionista(nutricionista: {
   dataNascimento: Date;
   crn: string;
   imagemPerfil?: string;
+  imagemCapa?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }) {
@@ -62,6 +63,7 @@ function normalizarPerfilNutricionista(nutricionista: {
     dataNascimento: nutricionista.dataNascimento.toISOString(),
     crn: nutricionista.crn,
     imagemPerfil: nutricionista.imagemPerfil,
+    imagemCapa: nutricionista.imagemCapa,
     createdAt: nutricionista.createdAt?.toISOString(),
     updatedAt: nutricionista.updatedAt?.toISOString(),
   });

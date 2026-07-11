@@ -3,7 +3,7 @@ import { z } from "zod";
 import { Model } from "mongoose";
 import { IRetornoApiSchema } from "../generalInterfaces.js";
 
-const imagemPerfilBase64Schema = z
+const imagem = z
     .string()
     .trim()
     .max(2_800_000, "Imagem muito grande")
@@ -16,7 +16,8 @@ const INutricionistaSchema = IUsuarioSchema.extend({
     crn: z.string().trim().min(5, "O CRN deve ter no mínimo 5 caracteres").max(15, "O CRN deve ter no máximo 15 caracteres"),
     senha: z.string().min(8, { message: "Senha deve ter pelo menos 8 caracteres" }).max(20, { message: "Senha deve ter no máximo 20 caracteres" })
     ,
-    imagemPerfil: imagemPerfilBase64Schema.optional(),
+    imagemPerfil: imagem.optional(),
+    imagemCapa: imagem.optional()
 });
 
 type INutricionista = z.infer<typeof INutricionistaSchema>;
