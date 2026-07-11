@@ -8,6 +8,10 @@ import {
 } from "../../interfaces/usuarios/pacienteInterfaces.js";
 import { formatDateOnly } from "../../utils/utils.js";
 import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
+import {
+  descriptografarPlanoAlimentar,
+  isPlanoAlimentarValido,
+} from "../planoAlimentar/planoAlimentarHelpers.js";
 
 async function cadastrarPaciente(
   req: Request,
@@ -25,10 +29,9 @@ async function cadastrarPaciente(
     await conectarAoBancoDeDados();
 
     const pacienteInput = pacienteSafe.data.paciente;
-    
     const idNutricionista = getIdNutricionistaAutenticado(req, next);
 
-    if(!idNutricionista){
+    if (!idNutricionista) {
       return;
     }
 
@@ -38,6 +41,9 @@ async function cadastrarPaciente(
       dataNascimento: pacienteInput.dataNascimento?.toISOString(),
     });
     const dataNascimento = pacienteCriado.getDataNascimentoDescriptografada();
+    const planosAlimentares = (pacienteCriado.planosAlimentares ?? [])
+      .filter(isPlanoAlimentarValido)
+      .map(descriptografarPlanoAlimentar);
 
     return IRetornoPacienteSchema.parse({
       message: "Paciente cadastrado com sucesso",
@@ -46,13 +52,13 @@ async function cadastrarPaciente(
       paciente: {
         id: String(pacienteCriado._id),
         idNutricionista: pacienteCriado.idNutricionista,
-        nome: pacienteCriado.nome,
-        sobrenome: pacienteCriado.sobrenome,
+        nome: pacienteCriado.getNomeDescriptografado(),
+        sobrenome: pacienteCriado.getSobrenomeDescriptografado(),
         email: pacienteCriado.getEmailDescriptografado(),
         dataNascimento: formatDateOnly(dataNascimento),
-        sexo: pacienteCriado.sexo,
-        observacoes: pacienteCriado.observacoes,
-        planosAlimentares: pacienteCriado.planosAlimentares ?? [],
+        sexo: pacienteCriado.getSexoDescriptografado(),
+        observacoes: pacienteCriado.getObservacoesDescriptografadas(),
+        planosAlimentares,
         createdAt:
           pacienteCriado.createdAt?.toISOString() ?? new Date().toISOString(),
         updatedAt:
