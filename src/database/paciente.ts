@@ -25,6 +25,8 @@ const PATIENT_FIELD_CONTEXTS = {
 } as const;
 
 type PlanoAlimentarPersistidoDocumento = {
+  tituloPlano?: string;
+  planoAtivo?: boolean;
   conteudoProtegido?: string;
   objetivoDoPlano?: string;
   observacoesGerais?: string;
@@ -71,6 +73,7 @@ const planoAlimentarSchema = new Schema(
     conteudoProtegido: { type: String },
     // Campos legados temporarios. Sao removidos quando o documento e salvo.
     objetivoDoPlano: { type: String },
+    planoAtivo: { type: Boolean, default: true },
     observacoesGerais: { type: String },
     refeicoes: { type: [refeicaoPlanoSchema] },
   },
@@ -113,6 +116,10 @@ function getPlanoPersistido(plano: PlanoAlimentarPersistidoDocumento) {
   return typeof plano.toObject === "function" ? plano.toObject() : plano;
 }
 
+function getPlanoAtivo(plano: PlanoAlimentarPersistidoDocumento) {
+  return typeof plano.planoAtivo === "boolean" ? plano.planoAtivo : true;
+}
+
 function protegerPlanosAlimentares(
   paciente: mongoose.HydratedDocument<IPacienteDB, IPacienteMethods>,
 ) {
@@ -128,6 +135,16 @@ function protegerPlanosAlimentares(
       typeof conteudoProtegido === "string" &&
       isAesGcmEncrypted(conteudoProtegido)
     ) {
+      if (typeof planoPersistido.planoAtivo !== "boolean") {
+        if (typeof plano.set === "function") {
+          plano.set("planoAtivo", true);
+        } else {
+          plano.planoAtivo = true;
+        }
+
+        houveAlteracao = true;
+      }
+
       continue;
     }
 
@@ -137,6 +154,7 @@ function protegerPlanosAlimentares(
             decryptJson<unknown>(conteudoProtegido, PATIENT_DIET_PLAN_CONTEXT),
           )
         : IPlanoAlimentarSchema.parse({
+            tituloPlano: planoPersistido.tituloPlano,
             objetivoDoPlano: planoPersistido.objetivoDoPlano,
             observacoesGerais: planoPersistido.observacoesGerais,
             refeicoes: planoPersistido.refeicoes,
@@ -148,12 +166,16 @@ function protegerPlanosAlimentares(
     );
 
     if (typeof plano.set === "function") {
+      plano.set("planoAtivo", getPlanoAtivo(planoPersistido));
       plano.set("conteudoProtegido", novoConteudoProtegido);
+      plano.set("tituloPlano", undefined);
       plano.set("objetivoDoPlano", undefined);
       plano.set("observacoesGerais", undefined);
       plano.set("refeicoes", undefined);
     } else {
+      plano.planoAtivo = getPlanoAtivo(planoPersistido);
       plano.conteudoProtegido = novoConteudoProtegido;
+      delete plano.tituloPlano;
       delete plano.objetivoDoPlano;
       delete plano.observacoesGerais;
       delete plano.refeicoes;

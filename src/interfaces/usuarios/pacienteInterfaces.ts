@@ -2,6 +2,7 @@ import { z } from "zod";
 import { IUsuarioSchema } from "./usuarioInterfaces";
 import {
   IPlanoAlimentarPersistidoSchema,
+  IPlanoAlimentarRetornoSchema,
   IPlanoAlimentarSchema,
 } from "../planoAlimentar/planoAlimentarInterfaces";
 import { Model } from "mongoose";
@@ -141,7 +142,7 @@ export const IPacienteRetornoSchema = IPacienteSchema.omit({
 }).extend({
   id: z.string(),
   dataNascimento: z.string().optional(),
-  planosAlimentares: z.array(IPlanoAlimentarSchema),
+  planosAlimentares: z.array(IPlanoAlimentarRetornoSchema),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

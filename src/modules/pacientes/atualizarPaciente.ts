@@ -9,8 +9,8 @@ import {
 } from "../../interfaces/usuarios/pacienteInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
 import {
-  descriptografarPlanoAlimentar,
   isPlanoAlimentarValido,
+  normalizarPlanoAlimentar,
 } from "../planoAlimentar/planoAlimentarHelpers.js";
 import { formatDateOnly } from "../../utils/utils.js";
 import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
@@ -90,7 +90,7 @@ async function atualizarPaciente(req: Request, next: NextFunction) {
       pacienteRecuperado.getDataNascimentoDescriptografada();
     const planosAlimentares = (pacienteRecuperado.planosAlimentares ?? [])
       .filter(isPlanoAlimentarValido)
-      .map(descriptografarPlanoAlimentar);
+      .map(normalizarPlanoAlimentar);
 
     return IRetornoPacienteSchema.parse({
       message: "Paciente atualizado com sucesso",

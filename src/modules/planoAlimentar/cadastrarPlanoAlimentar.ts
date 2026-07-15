@@ -52,9 +52,11 @@ async function cadastrarPlanoAlimentar(req: Request, next: NextFunction) {
     }
 
     const idPlano = new mongoose.Types.ObjectId();
+    const { planoAtivo, ...planoAlimentar } = planoSafe.data.planoAlimentar;
     const planoCriado = {
       _id: idPlano,
-      ...protegerPlanoAlimentar(planoSafe.data.planoAlimentar),
+      planoAtivo: planoAtivo ?? true,
+      ...protegerPlanoAlimentar(planoAlimentar),
     };
 
     await Paciente.updateOne(

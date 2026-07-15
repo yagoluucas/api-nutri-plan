@@ -68,11 +68,20 @@ async function atualizarPlanoAlimentar(req: Request, next: NextFunction) {
     const planoAtual = descriptografarPlanoAlimentar(
       planosAlimentares[indicePlano],
     );
+    const { planoAtivo, ...camposPlanoAlimentar } =
+      planoSafe.data.planoAlimentar;
     const planoAtualizado = IPlanoAlimentarSchema.parse({
       ...planoAtual,
-      ...planoSafe.data.planoAlimentar,
+      ...camposPlanoAlimentar,
     });
     const planoProtegido = protegerPlanoAlimentar(planoAtualizado);
+    const camposAtualizados: Record<string, string | boolean> = {
+      "planosAlimentares.$.conteudoProtegido": planoProtegido.conteudoProtegido,
+    };
+
+    if (typeof planoAtivo === "boolean") {
+      camposAtualizados["planosAlimentares.$.planoAtivo"] = planoAtivo;
+    }
 
     const pacienteAtualizado = await Paciente.findOneAndUpdate(
       {
@@ -81,11 +90,9 @@ async function atualizarPlanoAlimentar(req: Request, next: NextFunction) {
         "planosAlimentares._id": params.data.idPlano,
       },
       {
-        $set: {
-          "planosAlimentares.$.conteudoProtegido":
-            planoProtegido.conteudoProtegido,
-        },
+        $set: camposAtualizados,
         $unset: {
+          "planosAlimentares.$.tituloPlano": "",
           "planosAlimentares.$.objetivoDoPlano": "",
           "planosAlimentares.$.observacoesGerais": "",
           "planosAlimentares.$.refeicoes": "",

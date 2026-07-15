@@ -3,6 +3,7 @@ import { IRefeicoesSchema } from "./refeicoesInterfaces";
 import { IRetornoApiSchema } from "../generalInterfaces";
 
 export const IPlanoAlimentarSchema = z.object({
+    tituloPlano: z.string().optional(),
     objetivoDoPlano: z.string().optional(),
     observacoesGerais: z.string().optional(),
     refeicoes: z.array(IRefeicoesSchema).min(1, "O plano alimentar deve ter pelo menos 1 refeicao")
@@ -10,19 +11,24 @@ export const IPlanoAlimentarSchema = z.object({
 
 export type IPlanoAlimentar = z.infer<typeof IPlanoAlimentarSchema>;
 
-// Estrutura interna persistida no MongoDB. Os campos legados permanecem opcionais
-// apenas para permitir leitura e conversao segura dos registros ja existentes.
+export const IPlanoAlimentarInputSchema = IPlanoAlimentarSchema.extend({
+    planoAtivo: z.boolean().optional(),
+});
+
+export type IPlanoAlimentarInput = z.infer<typeof IPlanoAlimentarInputSchema>;
+
+// Estrutura interna persistida no MongoDB. O conteudo do plano fica criptografado,
+// enquanto campos operacionais ficam abertos para filtros e atualizacoes simples.
 export const IPlanoAlimentarPersistidoSchema = z.object({
-    conteudoProtegido: z.string().optional(),
-    objetivoDoPlano: z.string().optional(),
-    observacoesGerais: z.string().optional(),
-    refeicoes: z.array(IRefeicoesSchema).optional(),
+    planoAtivo: z.boolean().optional(),
+    conteudoProtegido: z.string(),
 });
 
 export type IPlanoAlimentarPersistido = z.infer<typeof IPlanoAlimentarPersistidoSchema>;
 
 export const IPlanoAlimentarRetornoSchema = IPlanoAlimentarSchema.extend({
     id: z.string().min(1),
+    planoAtivo: z.boolean(),
 });
 
 export const IPlanoAlimentarPacienteParamsSchema = z
@@ -44,11 +50,11 @@ export const IPlanoAlimentarParamsSchema =
 
 export const ICadastrarPlanoAlimentarRequestSchema = z
     .object({
-        planoAlimentar: IPlanoAlimentarSchema,
+        planoAlimentar: IPlanoAlimentarInputSchema,
     })
     .strict();
 
-export const IAtualizarPlanoAlimentarInputSchema = IPlanoAlimentarSchema
+export const IAtualizarPlanoAlimentarInputSchema = IPlanoAlimentarInputSchema
     .partial()
     .strict()
     .refine((planoAlimentar) => Object.keys(planoAlimentar).length > 0, {

@@ -9,8 +9,8 @@ import {
 import { formatDateOnly } from "../../utils/utils.js";
 import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
 import {
-  descriptografarPlanoAlimentar,
   isPlanoAlimentarValido,
+  normalizarPlanoAlimentar,
 } from "../planoAlimentar/planoAlimentarHelpers.js";
 
 async function cadastrarPaciente(
@@ -43,7 +43,7 @@ async function cadastrarPaciente(
     const dataNascimento = pacienteCriado.getDataNascimentoDescriptografada();
     const planosAlimentares = (pacienteCriado.planosAlimentares ?? [])
       .filter(isPlanoAlimentarValido)
-      .map(descriptografarPlanoAlimentar);
+      .map(normalizarPlanoAlimentar);
 
     return IRetornoPacienteSchema.parse({
       message: "Paciente cadastrado com sucesso",

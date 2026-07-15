@@ -12,9 +12,16 @@ import {
   PATIENT_DIET_PLAN_CONTEXT,
 } from "../../utils/encryption.js";
 
-type PlanoAlimentarDocumento = IPlanoAlimentarPersistido & {
+type PlanoAlimentarPersistidoComLegado = Partial<IPlanoAlimentarPersistido> & {
+  tituloPlano?: string;
+  objetivoDoPlano?: string;
+  observacoesGerais?: string;
+  refeicoes?: unknown[];
+};
+
+type PlanoAlimentarDocumento = PlanoAlimentarPersistidoComLegado & {
   _id?: { toString(): string };
-  toObject?: () => IPlanoAlimentarPersistido & {
+  toObject?: () => PlanoAlimentarPersistidoComLegado & {
     _id?: { toString(): string };
   };
 };
@@ -42,6 +49,7 @@ function descriptografarPlanoAlimentar(
   }
 
   return IPlanoAlimentarSchema.parse({
+    tituloPlano: plano?.tituloPlano,
     objetivoDoPlano: plano?.objetivoDoPlano,
     observacoesGerais: plano?.observacoesGerais,
     refeicoes: plano?.refeicoes,
@@ -65,6 +73,7 @@ function normalizarPlanoAlimentar(planoAlimentar: unknown) {
 
   return IPlanoAlimentarRetornoSchema.parse({
     id: plano?._id?.toString(),
+    planoAtivo: plano?.planoAtivo ?? true,
     ...planoDescriptografado,
   });
 }
