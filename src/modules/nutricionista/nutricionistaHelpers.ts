@@ -52,6 +52,7 @@ function normalizarPerfilNutricionista(nutricionista: {
   crn: string;
   imagemPerfil?: string;
   imagemCapa?: string;
+  alimentosFavoritos?: string[];
   createdAt?: Date;
   updatedAt?: Date;
 }) {
@@ -64,6 +65,7 @@ function normalizarPerfilNutricionista(nutricionista: {
     crn: nutricionista.crn,
     imagemPerfil: nutricionista.imagemPerfil,
     imagemCapa: nutricionista.imagemCapa,
+    alimentosFavoritos: nutricionista.alimentosFavoritos ?? [],
     createdAt: nutricionista.createdAt?.toISOString(),
     updatedAt: nutricionista.updatedAt?.toISOString(),
   });
