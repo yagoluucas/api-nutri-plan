@@ -7,7 +7,8 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "migrate:nutricionistas-encryption": "tsx src/scripts/migrateNutricionistaEncryption.ts"
+    "migrate:nutricionistas-encryption": "tsx src/scripts/migrateNutricionistaEncryption.ts",
+    "cleanup:nutricionistas-images": "tsx src/scripts/removeNutricionistaImages.ts"
   },
   "engines": {
     "node": ">=22"

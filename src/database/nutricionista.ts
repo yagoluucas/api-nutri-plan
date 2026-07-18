@@ -19,8 +19,6 @@ const NUTRITIONIST_FIELD_CONTEXTS = {
   email: "nutricionista:email",
   dataNascimento: "nutricionista:data-nascimento",
   crn: "nutricionista:crn",
-  imagemPerfil: "nutricionista:imagem-perfil",
-  imagemCapa: "nutricionista:imagem-capa",
 } as const;
 
 type CampoProtegidoNutricionista = keyof typeof NUTRITIONIST_FIELD_CONTEXTS;
@@ -55,7 +53,6 @@ const nutricionistaSchema = new Schema<
       set: (value: unknown) =>
         value instanceof Date ? value.toISOString() : value,
     },
-    imagemPerfil: { type: String },
     senha: {
       type: String,
       required: true,
@@ -66,7 +63,6 @@ const nutricionistaSchema = new Schema<
         "A senha deve conter pelo menos uma letra maiuscula, uma minuscula, um numero e um caractere especial.",
       ],
     },
-    imagemCapa: { type: String },
     alimentosFavoritos: { type: [alimentoFavoritoSchema], default: [] },
   },
   {
@@ -145,10 +141,6 @@ function getCampoCriptografadoObrigatorio(valor: unknown, nomeCampo: string) {
   return valor;
 }
 
-function getCampoCriptografadoOpcional(valor: unknown) {
-  return typeof valor === "string" && valor.length > 0 ? valor : undefined;
-}
-
 nutricionistaSchema.index(
   { emailHash: 1 },
   {
@@ -171,8 +163,6 @@ nutricionistaSchema.pre("validate", function () {
   protegerCampoNutricionista(this, "email");
   protegerCampoNutricionista(this, "dataNascimento");
   protegerCampoNutricionista(this, "crn");
-  protegerCampoNutricionista(this, "imagemPerfil");
-  protegerCampoNutricionista(this, "imagemCapa");
 });
 
 nutricionistaSchema.pre("save", async function () {
@@ -234,26 +224,6 @@ nutricionistaSchema.methods.getCrnDescriptografado = function () {
       NUTRITIONIST_FIELD_CONTEXTS.crn,
     ),
   );
-};
-
-nutricionistaSchema.methods.getImagemPerfilDescriptografada = function () {
-  const imagemPerfil = getCampoCriptografadoOpcional(this.imagemPerfil);
-
-  return imagemPerfil
-    ? INutricionistaSchema.shape.imagemPerfil.parse(
-        decryptString(imagemPerfil, NUTRITIONIST_FIELD_CONTEXTS.imagemPerfil),
-      )
-    : undefined;
-};
-
-nutricionistaSchema.methods.getImagemCapaDescriptografada = function () {
-  const imagemCapa = getCampoCriptografadoOpcional(this.imagemCapa);
-
-  return imagemCapa
-    ? INutricionistaSchema.shape.imagemCapa.parse(
-        decryptString(imagemCapa, NUTRITIONIST_FIELD_CONTEXTS.imagemCapa),
-      )
-    : undefined;
 };
 
 const Nutricionista = mongoose.model<INutricionistaDB, NutricionistaModel>(

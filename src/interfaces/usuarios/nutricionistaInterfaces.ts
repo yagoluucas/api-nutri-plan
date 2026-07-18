@@ -3,15 +3,6 @@ import { z } from "zod";
 import { Model } from "mongoose";
 import { IRetornoApiSchema } from "../generalInterfaces.js";
 
-const imagem = z
-  .string()
-  .trim()
-  .max(2_800_000, "Imagem muito grande")
-  .regex(
-    /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/,
-    "Imagem invalida. Envie uma imagem png, jpeg ou webp em base64",
-  );
-
 const IAlimentoFavoritoSchema = z
   .object({
     idAlimento: z.string().trim().min(1, "Id do alimento e obrigatorio"),
@@ -32,8 +23,6 @@ const INutricionistaSchema = IUsuarioSchema.extend({
     .string()
     .min(8, { message: "Senha deve ter pelo menos 8 caracteres" })
     .max(20, { message: "Senha deve ter no máximo 20 caracteres" }),
-  imagemPerfil: imagem.optional(),
-  imagemCapa: imagem.optional(),
   alimentosFavoritos: z.array(IAlimentoFavoritoSchema).default([]),
 });
 
@@ -45,16 +34,12 @@ const INutricionistaDBSchema = INutricionistaSchema.omit({
   email: true,
   dataNascimento: true,
   crn: true,
-  imagemPerfil: true,
-  imagemCapa: true,
 }).extend({
   nome: z.string(),
   sobrenome: z.string(),
   email: z.string(),
   dataNascimento: z.string(),
   crn: z.string(),
-  imagemPerfil: z.string().optional(),
-  imagemCapa: z.string().optional(),
   emailHash: z.string(),
   crnHash: z.string(),
   createdAt: z.date().optional(),
@@ -93,8 +78,6 @@ interface INutricionistaMethods {
   getEmailDescriptografado(): string;
   getDataNascimentoDescriptografada(): Date | undefined;
   getCrnDescriptografado(): string;
-  getImagemPerfilDescriptografada(): string | undefined;
-  getImagemCapaDescriptografada(): string | undefined;
 }
 
 type NutricionistaModel = Model<INutricionistaDB, {}, INutricionistaMethods>;

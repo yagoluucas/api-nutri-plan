@@ -18,6 +18,37 @@ type NutricionistaDocument = HydratedDocument<
   INutricionistaMethods
 >;
 
+function hasToObject(value: unknown): value is { toObject: () => unknown } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "toObject" in value &&
+    typeof (value as { toObject?: unknown }).toObject === "function"
+  );
+}
+
+function normalizarAlimentosFavoritos(alimentosFavoritos: unknown) {
+  if (!Array.isArray(alimentosFavoritos)) {
+    return [];
+  }
+
+  return alimentosFavoritos.map((alimentoFavorito) => {
+    const alimentoFavoritoPlano = hasToObject(alimentoFavorito)
+      ? alimentoFavorito.toObject()
+      : alimentoFavorito;
+    const alimentoFavoritoRecord =
+      typeof alimentoFavoritoPlano === "object" &&
+      alimentoFavoritoPlano !== null
+        ? (alimentoFavoritoPlano as Record<string, unknown>)
+        : {};
+
+    return {
+      idAlimento: alimentoFavoritoRecord.idAlimento,
+      nomeAlimento: alimentoFavoritoRecord.nomeAlimento,
+    };
+  });
+}
+
 function getIdNutricionistaAutenticado(req: Request, next: NextFunction) {
   const idNutricionista = req.nutricionistaId;
 
@@ -120,9 +151,9 @@ function normalizarPerfilNutricionista(nutricionista: NutricionistaDocument) {
     email: nutricionista.getEmailDescriptografado(),
     dataNascimento: dataNascimento?.toISOString(),
     crn: nutricionista.getCrnDescriptografado(),
-    imagemPerfil: nutricionista.getImagemPerfilDescriptografada(),
-    imagemCapa: nutricionista.getImagemCapaDescriptografada(),
-    alimentosFavoritos: nutricionista.alimentosFavoritos ?? [],
+    alimentosFavoritos: normalizarAlimentosFavoritos(
+      nutricionista.alimentosFavoritos,
+    ),
     createdAt: nutricionista.createdAt?.toISOString(),
     updatedAt: nutricionista.updatedAt?.toISOString(),
   });

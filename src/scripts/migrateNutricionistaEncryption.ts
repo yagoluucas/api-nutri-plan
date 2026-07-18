@@ -15,14 +15,8 @@ const CAMPOS_OBRIGATORIOS = [
   "crn",
 ] as const;
 
-const CAMPOS_OPCIONAIS = ["imagemPerfil", "imagemCapa"] as const;
-
 function campoObrigatorioMigrado(value: unknown) {
   return typeof value === "string" && isAesGcmEncrypted(value);
-}
-
-function campoOpcionalMigrado(value: unknown) {
-  return value === undefined || value === null || campoObrigatorioMigrado(value);
 }
 
 function nutricionistaEstaMigrado(nutricionista: {
@@ -36,9 +30,6 @@ function nutricionistaEstaMigrado(nutricionista: {
     possuiHashes &&
     CAMPOS_OBRIGATORIOS.every((campo) =>
       campoObrigatorioMigrado(nutricionista.get(campo)),
-    ) &&
-    CAMPOS_OPCIONAIS.every((campo) =>
-      campoOpcionalMigrado(nutricionista.get(campo)),
     )
   );
 }
@@ -79,14 +70,6 @@ async function migrarNutricionistas() {
       nutricionista.set("email", nutricionista.getEmailDescriptografado());
       nutricionista.set("dataNascimento", dataNascimento);
       nutricionista.set("crn", nutricionista.getCrnDescriptografado());
-      nutricionista.set(
-        "imagemPerfil",
-        nutricionista.getImagemPerfilDescriptografada(),
-      );
-      nutricionista.set(
-        "imagemCapa",
-        nutricionista.getImagemCapaDescriptografada(),
-      );
 
       await nutricionista.save({ validateModifiedOnly: true });
       migrados += 1;
