@@ -12,7 +12,16 @@ const nutricionistaSchema = new Schema<INutricionista, NutricionistaModel, INutr
         imagemPerfil: { type: String, maxLength: 2_800_000 },
         senha: { type: String, required: true, minLength: 8, select: false, match: [/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/, "A senha deve conter pelo menos uma letra maiúscula, uma minúscula, um número e um caractere especial." ]},
         imagemCapa: { type: String, maxLength: 2_800_000 },
-        alimentosFavoritos: {type: [String], default: []}
+        alimentosFavoritos: {
+            type: [
+                {
+                    _id: false,
+                    idAlimento: { type: String, required: true, trim: true },
+                    nomeAlimento: { type: String, required: true, trim: true },
+                },
+            ],
+            default: [],
+        }
     },
     {
         timestamps: true,

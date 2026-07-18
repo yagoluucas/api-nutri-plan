@@ -1,7 +1,10 @@
 import { NextFunction, Request } from "express";
 import Nutricionista from "../../database/nutricionista.js";
 import { IErrorCause } from "../../interfaces/errors/erros.js";
-import { IPerfilNutricionistaSchema } from "../../interfaces/usuarios/nutricionistaInterfaces.js";
+import {
+  IPerfilNutricionista,
+  IPerfilNutricionistaSchema,
+} from "../../interfaces/usuarios/nutricionistaInterfaces.js";
 
 function getIdNutricionistaAutenticado(req: Request, next: NextFunction) {
   const idNutricionista = req.nutricionistaId;
@@ -52,7 +55,7 @@ function normalizarPerfilNutricionista(nutricionista: {
   crn: string;
   imagemPerfil?: string;
   imagemCapa?: string;
-  alimentosFavoritos?: string[];
+  alimentosFavoritos?: IPerfilNutricionista["alimentosFavoritos"];
   createdAt?: Date;
   updatedAt?: Date;
 }) {
