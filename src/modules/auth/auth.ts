@@ -15,12 +15,18 @@ import {
   loginRateLimiter,
   registerRateLimiter,
 } from "../../middlewares/rateLimit.js";
+import { existeConflitoIdentidadeNutricionista } from "../nutricionista/nutricionistaHelpers.js";
 import {
   criarSessao,
   revogarSessaoPorRefreshToken,
   revogarTodasSessoes,
   rotacionarSessao,
 } from "./sessionService.js";
+import {
+  createSearchHash,
+  normalizeCrnForSearch,
+  normalizeEmailForSearch,
+} from "../../utils/searchHash.js";
 
 const authRouter = Router();
 
@@ -34,6 +40,34 @@ function setSessionHeaders(res: Response, tokens: AuthTokens) {
   res.set(
     "X-Refresh-Token-Expires-In",
     String(tokens.refreshTokenExpiresInSeconds),
+  );
+}
+
+function conflitoNutricionistaError() {
+  return new Error("Nutricionista ja cadastrado, tente novamente", {
+    cause: {
+      cause: "Conflict",
+      statusCode: 422,
+    } as IErrorCause,
+  });
+}
+
+function credenciaisInvalidasError() {
+  return new Error("Email ou senha invalidos, confira os dados e tente novamente", {
+    cause: {
+      cause: "Authentication Failed",
+      internalCause: "Invalid Credentials",
+      statusCode: 401,
+    } as IErrorCause,
+  });
+}
+
+function isDuplicateKeyError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === 11000
   );
 }
 
@@ -53,26 +87,29 @@ async function register(
 
   try {
     await conectarAoBancoDeDados();
+    const emailHash = createSearchHash(
+      normalizeEmailForSearch(nutricionistSafe.data.email),
+    );
+    const crnHash = createSearchHash(
+      normalizeCrnForSearch(nutricionistSafe.data.crn),
+    );
 
-    const nutricionistExist = await Nutricionista.findOne({
+    const nutricionistExist = await existeConflitoIdentidadeNutricionista({
       email: nutricionistSafe.data.email,
+      crn: nutricionistSafe.data.crn,
     });
 
     if (nutricionistExist) {
-      next(
-        new Error("Nutricionista ja cadastrado, tente novamente", {
-          cause: {
-            cause: "Conflict",
-            statusCode: 422,
-          } as IErrorCause,
-        }),
-      );
+      next(conflitoNutricionistaError());
       return;
     }
 
-    const createNutricionist = await Nutricionista.create(
-      nutricionistSafe.data,
-    );
+    const createNutricionist = await Nutricionista.create({
+      ...nutricionistSafe.data,
+      dataNascimento: nutricionistSafe.data.dataNascimento.toISOString(),
+      emailHash,
+      crnHash,
+    });
     const tokens = await criarSessao(createNutricionist._id.toString());
 
     return {
@@ -83,12 +120,17 @@ async function register(
         statusCode: 201,
         user: {
           id: createNutricionist._id.toString(),
-          nome: createNutricionist.nome,
-          email: createNutricionist.email,
+          nome: createNutricionist.getNomeDescriptografado(),
+          email: createNutricionist.getEmailDescriptografado(),
         },
       },
     };
   } catch (error) {
+    if (isDuplicateKeyError(error)) {
+      next(conflitoNutricionistaError());
+      return;
+    }
+
     next(error);
   }
 }
@@ -107,43 +149,27 @@ async function login(
 
   try {
     await conectarAoBancoDeDados();
+    const normalizedEmail = normalizeEmailForSearch(safeUser.data.email);
+    const emailHash = createSearchHash(normalizedEmail);
 
     const user = await Nutricionista.findOne({
-      email: safeUser.data.email,
-    }).select("+senha");
+      $or: [{ emailHash }, { email: normalizedEmail }],
+    }).select("+senha +emailHash +crnHash");
 
     if (!user) {
-      next(
-        new Error(
-          "Email ou senha invalidos, confira os dados e tente novamente",
-          {
-            cause: {
-              cause: "Authentication Failed",
-              internalCause: "Invalid Credentials",
-              statusCode: 401,
-            } as IErrorCause,
-          },
-        ),
-      );
+      next(credenciaisInvalidasError());
       return;
     }
 
     const isPasswordValid = await user.validarSenha(safeUser.data.senha);
 
     if (!isPasswordValid) {
-      next(
-        new Error(
-          "Email ou senha invalidos, confira os dados e tente novamente",
-          {
-            cause: {
-              cause: "Authentication Failed",
-              internalCause: "Invalid Credentials",
-              statusCode: 401,
-            } as IErrorCause,
-          },
-        ),
-      );
+      next(credenciaisInvalidasError());
       return;
+    }
+
+    if (!user.emailHash || !user.crnHash || user.email === normalizedEmail) {
+      await user.save({ validateModifiedOnly: true });
     }
 
     const tokens = await criarSessao(user._id.toString());
@@ -156,8 +182,8 @@ async function login(
         statusCode: 200,
         user: {
           id: user._id.toString(),
-          nome: user.nome,
-          email: user.email,
+          nome: user.getNomeDescriptografado(),
+          email: user.getEmailDescriptografado(),
         },
       },
     };

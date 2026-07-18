@@ -7,9 +7,30 @@ import {
 import { authMiddleware } from "../../middlewares/auth.js";
 import {
   buscarNutricionistaAutenticado,
+  existeConflitoIdentidadeNutricionista,
   getIdNutricionistaAutenticado,
   normalizarPerfilNutricionista,
 } from "./nutricionistaHelpers.js";
+import { IErrorCause } from "../../interfaces/errors/erros.js";
+import { logger } from "../../utils/logger.js";
+
+function conflitoNutricionistaError() {
+  return new Error("Ja existe um nutricionista cadastrado com estes dados", {
+    cause: {
+      cause: "Conflict",
+      statusCode: 422,
+    } as IErrorCause,
+  });
+}
+
+function isDuplicateKeyError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === 11000
+  );
+}
 
 async function atualizarNutricionista(req: Request, next: NextFunction) {
   const nutricionistaSafe = IAtualizarNutricionista.safeParse(req.body);
@@ -39,6 +60,20 @@ async function atualizarNutricionista(req: Request, next: NextFunction) {
 
     const nutricionistaData = nutricionistaSafe.data;
 
+    if (nutricionistaData.email || nutricionistaData.crn) {
+      const existeConflito = await existeConflitoIdentidadeNutricionista({
+        email:
+          nutricionistaData.email ?? nutricionista.getEmailDescriptografado(),
+        crn: nutricionistaData.crn ?? nutricionista.getCrnDescriptografado(),
+        ignorarIdNutricionista: idNutricionista,
+      });
+
+      if (existeConflito) {
+        next(conflitoNutricionistaError());
+        return;
+      }
+    }
+
     Object.entries(nutricionistaData).forEach(([campo, valor]) => {
       if (valor !== undefined) {
         nutricionista.set(campo, valor);
@@ -54,7 +89,12 @@ async function atualizarNutricionista(req: Request, next: NextFunction) {
       nutricionista: normalizarPerfilNutricionista(nutricionista),
     });
   } catch (error) {
-    console.log(`[Atualizar perfil do nutricionista] - Error: ${error}`);
+    if (isDuplicateKeyError(error)) {
+      next(conflitoNutricionistaError());
+      return;
+    }
+
+    logger.error("nutritionist_profile_update_failed", error);
     next(error);
   }
 }

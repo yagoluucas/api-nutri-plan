@@ -2,6 +2,7 @@ import { NextFunction, Request, Router } from "express";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import { IRetornoPerfilNutricionistaSchema } from "../../interfaces/usuarios/nutricionistaInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
+import { logger } from "../../utils/logger.js";
 import {
   buscarNutricionistaAutenticado,
   getIdNutricionistaAutenticado,
@@ -34,7 +35,7 @@ async function buscarPerfilNutricionista(req: Request, next: NextFunction) {
       nutricionista: normalizarPerfilNutricionista(nutricionista),
     });
   } catch (error) {
-    console.log(`[Buscar Perfil Nutricionista] - Error: ${error}`);
+    logger.error("nutritionist_profile_fetch_failed", error);
     next(error);
   }
 }

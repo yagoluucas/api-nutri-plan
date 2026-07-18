@@ -12,6 +12,16 @@ const imagem = z
     "Imagem invalida. Envie uma imagem png, jpeg ou webp em base64",
   );
 
+const IAlimentoFavoritoSchema = z
+  .object({
+    idAlimento: z.string().trim().min(1, "Id do alimento e obrigatorio"),
+    nomeAlimento: z
+      .string()
+      .trim()
+      .min(1, "Nome do alimento favorito e obrigatorio"),
+  })
+  .strict();
+
 const INutricionistaSchema = IUsuarioSchema.extend({
   crn: z
     .string()
@@ -24,15 +34,34 @@ const INutricionistaSchema = IUsuarioSchema.extend({
     .max(20, { message: "Senha deve ter no máximo 20 caracteres" }),
   imagemPerfil: imagem.optional(),
   imagemCapa: imagem.optional(),
-  alimentosFavoritos: z.array(
-    z.object({
-      idAlimento: z.string().trim().min(1, "Id do alimento e obrigatorio"),
-      nomeAlimento: z.string().trim().min(1, "Nome do alimento favorito e obrigatorio"),
-    }),
-  ).default([]),
+  alimentosFavoritos: z.array(IAlimentoFavoritoSchema).default([]),
 });
 
 type INutricionista = z.infer<typeof INutricionistaSchema>;
+
+const INutricionistaDBSchema = INutricionistaSchema.omit({
+  nome: true,
+  sobrenome: true,
+  email: true,
+  dataNascimento: true,
+  crn: true,
+  imagemPerfil: true,
+  imagemCapa: true,
+}).extend({
+  nome: z.string(),
+  sobrenome: z.string(),
+  email: z.string(),
+  dataNascimento: z.string(),
+  crn: z.string(),
+  imagemPerfil: z.string().optional(),
+  imagemCapa: z.string().optional(),
+  emailHash: z.string(),
+  crnHash: z.string(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+});
+
+type INutricionistaDB = z.infer<typeof INutricionistaDBSchema>;
 
 const IPerfilNutricionistaSchema = INutricionistaSchema.omit({
   senha: true,
@@ -59,13 +88,23 @@ const IRetornoPerfilNutricionistaSchema = IRetornoApiSchema.extend({
 
 interface INutricionistaMethods {
   validarSenha(senhaInformada: string): Promise<boolean>;
+  getNomeDescriptografado(): string;
+  getSobrenomeDescriptografado(): string;
+  getEmailDescriptografado(): string;
+  getDataNascimentoDescriptografada(): Date | undefined;
+  getCrnDescriptografado(): string;
+  getImagemPerfilDescriptografada(): string | undefined;
+  getImagemCapaDescriptografada(): string | undefined;
 }
 
-type NutricionistaModel = Model<INutricionista, {}, INutricionistaMethods>;
+type NutricionistaModel = Model<INutricionistaDB, {}, INutricionistaMethods>;
 
 export {
+  IAlimentoFavoritoSchema,
   INutricionistaSchema,
   INutricionista,
+  INutricionistaDBSchema,
+  INutricionistaDB,
   IPerfilNutricionistaSchema,
   IPerfilNutricionista,
   IAtualizarNutricionista,

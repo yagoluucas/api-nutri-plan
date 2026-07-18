@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from "express";
 import Nutricionista from "../database/nutricionista.js";
 import { conectarAoBancoDeDados } from "../database/conexaoAoBanco.js";
 import { IErrorCause } from "../interfaces/errors/erros.js";
-import { INutricionistaSchema } from "../interfaces/usuarios/nutricionistaInterfaces.js";
 import { sessaoEstaAtiva } from "../modules/auth/sessionService.js";
 import { verificarAccessToken } from "../utils/authTokens.js";
 import { isValidString } from "../utils/utils.js";
@@ -83,16 +82,13 @@ async function authMiddleware(
       return;
     }
 
-    const parsedUser = INutricionistaSchema.partial().safeParse(
-      await Nutricionista.findById(parsedToken.id),
-    );
+    const userExists = await Nutricionista.exists({ _id: parsedToken.id });
 
-    if (!parsedUser.success) {
+    if (!userExists) {
       next(authenticationError());
       return;
     }
 
-    req.user = parsedUser.data;
     req.nutricionistaId = parsedToken.id;
     next();
   } catch (error) {
