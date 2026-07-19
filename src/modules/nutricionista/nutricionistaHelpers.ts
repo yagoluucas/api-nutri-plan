@@ -154,6 +154,8 @@ function normalizarPerfilNutricionista(nutricionista: NutricionistaDocument) {
     alimentosFavoritos: normalizarAlimentosFavoritos(
       nutricionista.alimentosFavoritos,
     ),
+    imagemPerfil: nutricionista.imagemPerfil || undefined,
+    imagemCapa: nutricionista.imagemCapa || undefined,
     createdAt: nutricionista.createdAt?.toISOString(),
     updatedAt: nutricionista.updatedAt?.toISOString(),
   });

@@ -64,6 +64,8 @@ const nutricionistaSchema = new Schema<
       ],
     },
     alimentosFavoritos: { type: [alimentoFavoritoSchema], default: [] },
+    imagemPerfil: { type: String, trim: true },
+    imagemCapa: { type: String, trim: true },
   },
   {
     timestamps: true,

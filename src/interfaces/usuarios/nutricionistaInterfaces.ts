@@ -13,6 +13,12 @@ const IAlimentoFavoritoSchema = z
   })
   .strict();
 
+const IImagemNutricionistaSchema = z
+  .string()
+  .trim()
+  .url("URL da imagem invalida")
+  .max(2_800, "URL da imagem muito longa");
+
 const INutricionistaSchema = IUsuarioSchema.extend({
   crn: z
     .string()
@@ -24,6 +30,8 @@ const INutricionistaSchema = IUsuarioSchema.extend({
     .min(8, { message: "Senha deve ter pelo menos 8 caracteres" })
     .max(20, { message: "Senha deve ter no máximo 20 caracteres" }),
   alimentosFavoritos: z.array(IAlimentoFavoritoSchema).default([]),
+  imagemPerfil: IImagemNutricionistaSchema.optional(),
+  imagemCapa: IImagemNutricionistaSchema.optional(),
 });
 
 type INutricionista = z.infer<typeof INutricionistaSchema>;
@@ -61,6 +69,8 @@ type IPerfilNutricionista = z.infer<typeof IPerfilNutricionistaSchema>;
 
 const IAtualizarNutricionista = INutricionistaSchema.omit({
   senha: true,
+  imagemPerfil: true,
+  imagemCapa: true,
 })
   .partial()
   .strict();
@@ -84,6 +94,7 @@ type NutricionistaModel = Model<INutricionistaDB, {}, INutricionistaMethods>;
 
 export {
   IAlimentoFavoritoSchema,
+  IImagemNutricionistaSchema,
   INutricionistaSchema,
   INutricionista,
   INutricionistaDBSchema,
