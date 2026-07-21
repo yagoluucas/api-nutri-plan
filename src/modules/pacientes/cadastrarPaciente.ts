@@ -49,6 +49,9 @@ async function cadastrarPaciente(
         sobrenome: pacienteCriado.getSobrenomeDescriptografado(),
         email: pacienteCriado.getEmailDescriptografado(),
         dataNascimento: formatDateOnly(dataNascimento),
+        dataEntregaPrimeiroPlano: formatDateOnly(
+          pacienteCriado.dataEntregaPrimeiroPlano,
+        ),
         sexo: pacienteCriado.getSexoDescriptografado(),
         observacoes: pacienteCriado.getObservacoesDescriptografadas(),
         qtdPlanos: pacienteCriado.qtdPlanos,

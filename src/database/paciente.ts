@@ -26,6 +26,7 @@ const pacienteSchema = new Schema<IPacienteDB, PacienteModel, IPacienteMethods>(
     sobrenome: { type: String, required: true },
     email: { type: String },
     dataNascimento: { type: String },
+    dataEntregaPrimeiroPlano: { type: Date },
     sexo: { type: String, required: true },
     observacoes: { type: String },
     qtdPlanos: { type: Number, min: 0, default: 0 },

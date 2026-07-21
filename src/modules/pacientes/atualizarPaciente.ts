@@ -76,6 +76,11 @@ async function atualizarPaciente(req: Request, next: NextFunction) {
         pacienteAtualizacao.dataNascimento?.toISOString();
     }
 
+    if (Object.hasOwn(pacienteAtualizacao, "dataEntregaPrimeiroPlano")) {
+      pacienteRecuperado.dataEntregaPrimeiroPlano =
+        pacienteAtualizacao.dataEntregaPrimeiroPlano;
+    }
+
     if (Object.hasOwn(pacienteAtualizacao, "observacoes")) {
       pacienteRecuperado.observacoes = pacienteAtualizacao.observacoes;
     }
@@ -96,6 +101,9 @@ async function atualizarPaciente(req: Request, next: NextFunction) {
         sobrenome: pacienteRecuperado.getSobrenomeDescriptografado(),
         email: pacienteRecuperado.getEmailDescriptografado(),
         dataNascimento: formatDateOnly(dataNascimento),
+        dataEntregaPrimeiroPlano: formatDateOnly(
+          pacienteRecuperado.dataEntregaPrimeiroPlano,
+        ),
         sexo: pacienteRecuperado.getSexoDescriptografado(),
         observacoes: pacienteRecuperado.getObservacoesDescriptografadas(),
         qtdPlanos: pacienteRecuperado.qtdPlanos,

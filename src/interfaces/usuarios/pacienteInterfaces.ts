@@ -7,10 +7,9 @@ const optionalEmailPacienteSchema = z.preprocess(
   (value) =>
     typeof value === "string" && value.trim() === "" ? undefined : value,
   z
-    .string()
+    .email({ message: "Email invalido, valide e tente novamente" })
     .trim()
     .toLowerCase()
-    .email({ message: "Email invalido, valide e tente novamente" })
     .min(5)
     .max(100)
     .optional(),
@@ -22,6 +21,62 @@ const optionalDataNascimentoPacienteSchema = z.preprocess(
   z.coerce
     .date()
     .max(new Date(), "A data de nascimento nao pode estar no futuro")
+    .optional(),
+);
+
+function getInicioDoDiaAtual() {
+  const hoje = new Date();
+  return getDateOnlyUtc(
+    hoje.getFullYear(),
+    hoje.getMonth(),
+    hoje.getDate(),
+  );
+}
+
+function getDateOnlyUtc(year: number, month: number, day: number) {
+  return new Date(Date.UTC(year, month, day));
+}
+
+function normalizarDataApenasDia(value: unknown) {
+  if (typeof value === "string") {
+    const normalizedValue = value.trim();
+
+    if (!normalizedValue) {
+      return undefined;
+    }
+
+    const dateOnlyMatch = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+    if (dateOnlyMatch) {
+      return getDateOnlyUtc(
+        Number(dateOnlyMatch[1]),
+        Number(dateOnlyMatch[2]) - 1,
+        Number(dateOnlyMatch[3]),
+      );
+    }
+  }
+
+  const parsedDate = value instanceof Date ? value : new Date(String(value));
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return value;
+  }
+
+  return getDateOnlyUtc(
+    parsedDate.getFullYear(),
+    parsedDate.getMonth(),
+    parsedDate.getDate(),
+  );
+}
+
+const optionalDataEntregaPrimeiroPlanoSchema = z.preprocess(
+  normalizarDataApenasDia,
+  z
+    .date()
+    .refine(
+      (date) => date.getTime() >= getInicioDoDiaAtual().getTime(),
+      "A data de entrega do primeiro plano nao pode estar no passado",
+    )
     .optional(),
 );
 
@@ -52,6 +107,7 @@ export const IPacienteSchema = IUsuarioSchema.pick({
     .min(1, "Id do nutricionista e obrigatorio"),
   email: optionalEmailPacienteSchema,
   dataNascimento: optionalDataNascimentoPacienteSchema,
+  dataEntregaPrimeiroPlano: optionalDataEntregaPrimeiroPlanoSchema,
   sexo: z.enum(["Masculino", "Feminino", "Outro"]),
   observacoes: optionalObservacoesPacienteSchema,
   evolucao: z.array(IEvolucaoPacienteSchema).optional(),
@@ -108,6 +164,7 @@ export const IAtualizarPacienteInputSchema = IPacienteSchema.pick({
   sobrenome: true,
   email: true,
   dataNascimento: true,
+  dataEntregaPrimeiroPlano: true,
   sexo: true,
   observacoes: true,
 })
@@ -134,9 +191,11 @@ export const IBuscarUsuarioParamsSchema = z
 
 export const IPacienteRetornoSchema = IPacienteSchema.omit({
   dataNascimento: true,
+  dataEntregaPrimeiroPlano: true,
 }).extend({
   id: z.string(),
   dataNascimento: z.string().optional(),
+  dataEntregaPrimeiroPlano: z.string().optional(),
   qtdPlanos: IQtdPlanosPacienteSchema,
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -150,6 +209,7 @@ export const IPacienteListaItemSchema = IPacienteSchema.pick({
   .extend({
     id: z.string(),
     dataNascimento: z.string().optional(),
+    dataEntregaPrimeiroPlano: z.string().optional(),
     qtdPlanos: IQtdPlanosPacienteSchema,
     createdAt: z.string(),
     updatedAt: z.string(),
