@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { ICadastrarAlimentos } from '../../interfaces/alimentos/apiAlimentosInterface.js';
 import { isValidString } from '../../utils/utils.js';
+import { authMiddleware } from '../../middlewares/auth.js';
 
 const cadastrarAlimentosRouter = Router();
 
@@ -9,7 +10,7 @@ async function cadastrarAlimentos(alimento: unknown, idUser: unknown): Promise<I
     return { message: "Alimento cadastrado com sucesso", error: false, statusCode: 201 };
 }
 
-cadastrarAlimentosRouter.post('/', async (req, res) => {
+cadastrarAlimentosRouter.post('/', authMiddleware, async (req, res) => {
     const alimento = req.body?.alimento;
     const idUser = req.body?.idUser;
     const result = await cadastrarAlimentos(alimento, idUser);

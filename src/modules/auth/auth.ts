@@ -12,7 +12,9 @@ import { IErrorCause } from "../../interfaces/errors/erros.js";
 import { INutricionistaSchema } from "../../interfaces/usuarios/nutricionistaInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
 import {
+  getLoginRemainingMessage,
   loginRateLimiter,
+  registerLoginFailure,
   registerRateLimiter,
 } from "../../middlewares/rateLimit.js";
 import { existeConflitoIdentidadeNutricionista } from "../nutricionista/nutricionistaHelpers.js";
@@ -52,8 +54,8 @@ function conflitoNutricionistaError() {
   });
 }
 
-function credenciaisInvalidasError() {
-  return new Error("Email ou senha invalidos, confira os dados e tente novamente", {
+function credenciaisInvalidasError(message: string) {
+  return new Error(message, {
     cause: {
       cause: "Authentication Failed",
       internalCause: "Invalid Credentials",
@@ -157,14 +159,16 @@ async function login(
     }).select("+senha +emailHash +crnHash");
 
     if (!user) {
-      next(credenciaisInvalidasError());
+      const loginFailure = await registerLoginFailure(req, _res);
+      next(credenciaisInvalidasError(getLoginRemainingMessage(loginFailure)));
       return;
     }
 
     const isPasswordValid = await user.validarSenha(safeUser.data.senha);
 
     if (!isPasswordValid) {
-      next(credenciaisInvalidasError());
+      const loginFailure = await registerLoginFailure(req, _res);
+      next(credenciaisInvalidasError(getLoginRemainingMessage(loginFailure)));
       return;
     }
 

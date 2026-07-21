@@ -20,6 +20,11 @@ import { deletarPacienteRouter } from './modules/pacientes/deletarPaciente.js';
 import { deletarNutricionistaRouter } from './modules/nutricionista/deleterNutricionista.js';
 import helmet from 'helmet';
 import { installConsoleRedaction, logger } from './utils/logger.js';
+import {
+    globalRateLimiter,
+    readRateLimiter,
+    writeRateLimiter,
+} from './middlewares/rateLimit.js';
 
 installConsoleRedaction();
 
@@ -32,6 +37,7 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors(corsOptions));
 app.use(cookieParser());
+app.use(globalRateLimiter);
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '3mb' }));
 
 // Apenas para testar o funcionamento da API
@@ -50,6 +56,9 @@ app.get("/health", (req, res) => {
         statusCode: 200
     });
 });
+
+app.use(readRateLimiter);
+app.use(writeRateLimiter);
 
 app.use("/alimentos", recuperarAlimentosRouter)
 app.use("/alimentos", cadastrarAlimentosRouter)

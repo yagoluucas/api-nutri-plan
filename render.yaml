@@ -31,3 +31,5 @@ services:
         value: 7d
       - key: ENCRYPTION_KEY
         sync: false
+      - key: REDIS_URL
+        sync: false
