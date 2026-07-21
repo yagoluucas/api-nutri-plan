@@ -78,16 +78,6 @@ function normalizarPlanoAlimentar(planoAlimentar: unknown) {
   });
 }
 
-function buscarIndicePlanoAlimentar(
-  planosAlimentares: unknown[],
-  idPlano: string,
-) {
-  return planosAlimentares.findIndex((planoAlimentar) => {
-    const plano = getPlanoDocumento(planoAlimentar);
-    return plano?._id?.toString() === idPlano;
-  });
-}
-
 function isPlanoAlimentarValido(planoAlimentar: unknown) {
   try {
     descriptografarPlanoAlimentar(planoAlimentar);
@@ -110,7 +100,6 @@ function nextPlanoAlimentarNaoEncontrado(next: NextFunction) {
 }
 
 export {
-  buscarIndicePlanoAlimentar,
   descriptografarPlanoAlimentar,
   isPlanoAlimentarValido,
   nextPlanoAlimentarNaoEncontrado,

@@ -8,10 +8,6 @@ import {
   IRetornoPacienteSchema,
 } from "../../interfaces/usuarios/pacienteInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
-import {
-  isPlanoAlimentarValido,
-  normalizarPlanoAlimentar,
-} from "../planoAlimentar/planoAlimentarHelpers.js";
 import { formatDateOnly } from "../../utils/utils.js";
 import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
 
@@ -88,9 +84,6 @@ async function atualizarPaciente(req: Request, next: NextFunction) {
 
     const dataNascimento =
       pacienteRecuperado.getDataNascimentoDescriptografada();
-    const planosAlimentares = (pacienteRecuperado.planosAlimentares ?? [])
-      .filter(isPlanoAlimentarValido)
-      .map(normalizarPlanoAlimentar);
 
     return IRetornoPacienteSchema.parse({
       message: "Paciente atualizado com sucesso",
@@ -105,7 +98,7 @@ async function atualizarPaciente(req: Request, next: NextFunction) {
         dataNascimento: formatDateOnly(dataNascimento),
         sexo: pacienteRecuperado.getSexoDescriptografado(),
         observacoes: pacienteRecuperado.getObservacoesDescriptografadas(),
-        planosAlimentares,
+        qtdPlanos: pacienteRecuperado.qtdPlanos,
         createdAt:
           pacienteRecuperado.createdAt?.toISOString() ??
           new Date().toISOString(),

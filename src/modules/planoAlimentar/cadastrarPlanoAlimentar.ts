@@ -1,7 +1,7 @@
 import { NextFunction, Request, Router } from "express";
-import mongoose from "mongoose";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import Paciente from "../../database/paciente.js";
+import PlanoAlimentar from "../../database/planoAlimentar.js";
 import {
   ICadastrarPlanoAlimentarRequestSchema,
   IPlanoAlimentarPacienteParamsSchema,
@@ -51,13 +51,12 @@ async function cadastrarPlanoAlimentar(req: Request, next: NextFunction) {
       return;
     }
 
-    const idPlano = new mongoose.Types.ObjectId();
     const { planoAtivo, ...planoAlimentar } = planoSafe.data.planoAlimentar;
-    const planoCriado = {
-      _id: idPlano,
+    const planoCriado = await PlanoAlimentar.create({
+      idPaciente: params.data.idPaciente,
       planoAtivo: planoAtivo ?? true,
       ...protegerPlanoAlimentar(planoAlimentar),
-    };
+    });
 
     await Paciente.updateOne(
       {
@@ -65,12 +64,9 @@ async function cadastrarPlanoAlimentar(req: Request, next: NextFunction) {
         idNutricionista,
       },
       {
-        $push: {
-          planosAlimentares: planoCriado,
+        $inc: {
+          qtdPlanos: 1,
         },
-      },
-      {
-        runValidators: true,
       },
     );
 

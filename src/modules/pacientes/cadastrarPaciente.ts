@@ -8,10 +8,6 @@ import {
 } from "../../interfaces/usuarios/pacienteInterfaces.js";
 import { formatDateOnly } from "../../utils/utils.js";
 import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
-import {
-  isPlanoAlimentarValido,
-  normalizarPlanoAlimentar,
-} from "../planoAlimentar/planoAlimentarHelpers.js";
 
 async function cadastrarPaciente(
   req: Request,
@@ -41,9 +37,6 @@ async function cadastrarPaciente(
       dataNascimento: pacienteInput.dataNascimento?.toISOString(),
     });
     const dataNascimento = pacienteCriado.getDataNascimentoDescriptografada();
-    const planosAlimentares = (pacienteCriado.planosAlimentares ?? [])
-      .filter(isPlanoAlimentarValido)
-      .map(normalizarPlanoAlimentar);
 
     return IRetornoPacienteSchema.parse({
       message: "Paciente cadastrado com sucesso",
@@ -58,7 +51,7 @@ async function cadastrarPaciente(
         dataNascimento: formatDateOnly(dataNascimento),
         sexo: pacienteCriado.getSexoDescriptografado(),
         observacoes: pacienteCriado.getObservacoesDescriptografadas(),
-        planosAlimentares,
+        qtdPlanos: pacienteCriado.qtdPlanos,
         createdAt:
           pacienteCriado.createdAt?.toISOString() ?? new Date().toISOString(),
         updatedAt:

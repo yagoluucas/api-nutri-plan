@@ -1,6 +1,6 @@
 import { NextFunction, Request, Router } from "express";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
-import Paciente from "../../database/paciente.js";
+import PlanoAlimentar from "../../database/planoAlimentar.js";
 import {
   IAtualizarPlanoAlimentarRequestSchema,
   IPlanoAlimentarParamsSchema,
@@ -13,7 +13,6 @@ import {
   getIdNutricionistaAutenticado,
 } from "../pacientes/pacienteHelpers.js";
 import {
-  buscarIndicePlanoAlimentar,
   descriptografarPlanoAlimentar,
   nextPlanoAlimentarNaoEncontrado,
   normalizarPlanoAlimentar,
@@ -54,20 +53,17 @@ async function atualizarPlanoAlimentar(req: Request, next: NextFunction) {
       return;
     }
 
-    const planosAlimentares = paciente.planosAlimentares ?? [];
-    const indicePlano = buscarIndicePlanoAlimentar(
-      planosAlimentares,
-      params.data.idPlano,
-    );
+    const plano = await PlanoAlimentar.findOne({
+      _id: params.data.idPlano,
+      idPaciente: params.data.idPaciente,
+    });
 
-    if (indicePlano === -1) {
+    if (!plano) {
       nextPlanoAlimentarNaoEncontrado(next);
       return;
     }
 
-    const planoAtual = descriptografarPlanoAlimentar(
-      planosAlimentares[indicePlano],
-    );
+    const planoAtual = descriptografarPlanoAlimentar(plano);
     const { planoAtivo, ...camposPlanoAlimentar } =
       planoSafe.data.planoAlimentar;
     const planoAtualizado = IPlanoAlimentarSchema.parse({
@@ -75,59 +71,20 @@ async function atualizarPlanoAlimentar(req: Request, next: NextFunction) {
       ...camposPlanoAlimentar,
     });
     const planoProtegido = protegerPlanoAlimentar(planoAtualizado);
-    const camposAtualizados: Record<string, string | boolean> = {
-      "planosAlimentares.$.conteudoProtegido": planoProtegido.conteudoProtegido,
-    };
+
+    plano.conteudoProtegido = planoProtegido.conteudoProtegido;
 
     if (typeof planoAtivo === "boolean") {
-      camposAtualizados["planosAlimentares.$.planoAtivo"] = planoAtivo;
+      plano.planoAtivo = planoAtivo;
     }
 
-    const pacienteAtualizado = await Paciente.findOneAndUpdate(
-      {
-        _id: params.data.idPaciente,
-        idNutricionista,
-        "planosAlimentares._id": params.data.idPlano,
-      },
-      {
-        $set: camposAtualizados,
-        $unset: {
-          "planosAlimentares.$.tituloPlano": "",
-          "planosAlimentares.$.objetivoDoPlano": "",
-          "planosAlimentares.$.observacoesGerais": "",
-          "planosAlimentares.$.refeicoes": "",
-        },
-      },
-      {
-        returnDocument: "after",
-        runValidators: true,
-      },
-    );
-
-    if (!pacienteAtualizado) {
-      nextPlanoAlimentarNaoEncontrado(next);
-      return;
-    }
-
-    const planosAlimentaresAtualizados =
-      pacienteAtualizado.planosAlimentares ?? [];
-    const indicePlanoAtualizado = buscarIndicePlanoAlimentar(
-      planosAlimentaresAtualizados,
-      params.data.idPlano,
-    );
-
-    if (indicePlanoAtualizado === -1) {
-      nextPlanoAlimentarNaoEncontrado(next);
-      return;
-    }
+    await plano.save({ validateModifiedOnly: true });
 
     return IRetornoPlanoAlimentarSchema.parse({
       message: "Plano alimentar atualizado com sucesso",
       error: false,
       statusCode: 200,
-      planoAlimentar: normalizarPlanoAlimentar(
-        planosAlimentaresAtualizados[indicePlanoAtualizado],
-      ),
+      planoAlimentar: normalizarPlanoAlimentar(plano),
     });
   } catch (error) {
     console.log(`[Atualizar Plano Alimentar] - Error: ${error}`);

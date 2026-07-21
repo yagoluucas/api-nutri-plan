@@ -1,5 +1,6 @@
 import { NextFunction, Request, Router } from "express";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
+import PlanoAlimentar from "../../database/planoAlimentar.js";
 import {
   IPlanoAlimentarPacienteParamsSchema,
   IRetornoPlanosAlimentaresSchema,
@@ -9,10 +10,7 @@ import {
   buscarPacienteAutorizado,
   getIdNutricionistaAutenticado,
 } from "../pacientes/pacienteHelpers.js";
-import {
-  isPlanoAlimentarValido,
-  normalizarPlanoAlimentar,
-} from "./planoAlimentarHelpers.js";
+import { isPlanoAlimentarValido, normalizarPlanoAlimentar } from "./planoAlimentarHelpers.js";
 
 async function buscarPlanosAlimentares(req: Request, next: NextFunction) {
   const params = IPlanoAlimentarPacienteParamsSchema.safeParse(req.params);
@@ -41,11 +39,15 @@ async function buscarPlanosAlimentares(req: Request, next: NextFunction) {
       return;
     }
 
+    const planosAlimentares = await PlanoAlimentar.find({
+      idPaciente: params.data.idPaciente,
+    }).sort({ createdAt: -1 });
+
     return IRetornoPlanosAlimentaresSchema.parse({
       message: "Planos alimentares recuperados com sucesso",
       error: false,
       statusCode: 200,
-      planosAlimentares: (paciente.planosAlimentares ?? [])
+      planosAlimentares: planosAlimentares
         .filter(isPlanoAlimentarValido)
         .map(normalizarPlanoAlimentar),
     });

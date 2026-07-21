@@ -1,6 +1,7 @@
 import { NextFunction, Request, Router } from "express";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import Paciente from "../../database/paciente.js";
+import PlanoAlimentar from "../../database/planoAlimentar.js";
 import { IRetornoApiSchema } from "../../interfaces/generalInterfaces.js";
 import { IPlanoAlimentarParamsSchema } from "../../interfaces/planoAlimentar/planoAlimentarInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
@@ -8,10 +9,7 @@ import {
   buscarPacienteAutorizado,
   getIdNutricionistaAutenticado,
 } from "../pacientes/pacienteHelpers.js";
-import {
-  buscarIndicePlanoAlimentar,
-  nextPlanoAlimentarNaoEncontrado,
-} from "./planoAlimentarHelpers.js";
+import { nextPlanoAlimentarNaoEncontrado } from "./planoAlimentarHelpers.js";
 
 async function deletarPlanoAlimentar(req: Request, next: NextFunction) {
   const params = IPlanoAlimentarParamsSchema.safeParse(req.params);
@@ -40,36 +38,28 @@ async function deletarPlanoAlimentar(req: Request, next: NextFunction) {
       return;
     }
 
-    const planosAlimentares = paciente.planosAlimentares ?? [];
-    const indicePlano = buscarIndicePlanoAlimentar(
-      planosAlimentares,
-      params.data.idPlano,
-    );
+    const planoAlimentarRemovido = await PlanoAlimentar.deleteOne({
+      _id: params.data.idPlano,
+      idPaciente: params.data.idPaciente,
+    });
 
-    if (indicePlano === -1) {
+    if (planoAlimentarRemovido.deletedCount === 0) {
       nextPlanoAlimentarNaoEncontrado(next);
       return;
     }
 
-    const planoAlimentarRemovido = await Paciente.updateOne(
+    await Paciente.updateOne(
       {
         _id: params.data.idPaciente,
         idNutricionista,
-        "planosAlimentares._id": params.data.idPlano,
+        qtdPlanos: { $gt: 0 },
       },
       {
-        $pull: {
-          planosAlimentares: {
-            _id: params.data.idPlano,
-          },
+        $inc: {
+          qtdPlanos: -1,
         },
       },
     );
-
-    if (planoAlimentarRemovido.modifiedCount === 0) {
-      nextPlanoAlimentarNaoEncontrado(next);
-      return;
-    }
 
     return IRetornoApiSchema.parse({
       message: "Plano alimentar excluido com sucesso",

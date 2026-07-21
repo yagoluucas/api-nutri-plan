@@ -1,10 +1,5 @@
 import { z } from "zod";
 import { IUsuarioSchema } from "./usuarioInterfaces";
-import {
-  IPlanoAlimentarPersistidoSchema,
-  IPlanoAlimentarRetornoSchema,
-  IPlanoAlimentarSchema,
-} from "../planoAlimentar/planoAlimentarInterfaces";
 import { Model } from "mongoose";
 import { IRetornoApiSchema } from "../generalInterfaces";
 
@@ -45,6 +40,8 @@ const IEvolucaoPacienteSchema = z.object({
   observacoes: z.string().optional(),
 });
 
+const IQtdPlanosPacienteSchema = z.number().int().min(0).optional();
+
 export const IPacienteSchema = IUsuarioSchema.pick({
   nome: true,
   sobrenome: true,
@@ -57,7 +54,6 @@ export const IPacienteSchema = IUsuarioSchema.pick({
   dataNascimento: optionalDataNascimentoPacienteSchema,
   sexo: z.enum(["Masculino", "Feminino", "Outro"]),
   observacoes: optionalObservacoesPacienteSchema,
-  planosAlimentares: z.array(IPlanoAlimentarSchema).optional(),
   evolucao: z.array(IEvolucaoPacienteSchema).optional(),
 });
 
@@ -73,7 +69,6 @@ export const IPacienteDBSchema = IPacienteSchema.omit({
   dataNascimento: true,
   sexo: true,
   observacoes: true,
-  planosAlimentares: true,
   evolucao: true,
 }).extend({
   nome: z.string(),
@@ -82,7 +77,7 @@ export const IPacienteDBSchema = IPacienteSchema.omit({
   dataNascimento: z.string().optional(),
   sexo: z.string(),
   observacoes: z.string().optional(),
-  planosAlimentares: z.array(IPlanoAlimentarPersistidoSchema).optional(),
+  qtdPlanos: IQtdPlanosPacienteSchema,
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
 });
@@ -142,7 +137,7 @@ export const IPacienteRetornoSchema = IPacienteSchema.omit({
 }).extend({
   id: z.string(),
   dataNascimento: z.string().optional(),
-  planosAlimentares: z.array(IPlanoAlimentarRetornoSchema),
+  qtdPlanos: IQtdPlanosPacienteSchema,
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -155,9 +150,9 @@ export const IPacienteListaItemSchema = IPacienteSchema.pick({
   .extend({
     id: z.string(),
     dataNascimento: z.string().optional(),
+    qtdPlanos: IQtdPlanosPacienteSchema,
     createdAt: z.string(),
     updatedAt: z.string(),
-    qtdPlanos: z.number(),
   })
   .strict();
 

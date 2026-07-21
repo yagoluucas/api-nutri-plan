@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import { conectarAoBancoDeDados } from '../../database/conexaoAoBanco.js';
-import { Alimento } from '../../database/alimentoModel.js';
+import { Alimento } from '../../database/alimento.js';
 import { isValidString } from '../../utils/utils.js';
 import { IAlimentoSchema, IAlimento } from '../../interfaces/alimentos/modelAlimentosInterface.js';
 import { authMiddleware } from '../../middlewares/auth.js';
