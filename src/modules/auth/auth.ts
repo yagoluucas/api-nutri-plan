@@ -1,3 +1,4 @@
+import bcrypt from "bcrypt";
 import { NextFunction, Request, Response, Router } from "express";
 import Nutricionista from "../../database/nutricionista.js";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
@@ -31,6 +32,11 @@ import {
 } from "../../utils/searchHash.js";
 
 const authRouter = Router();
+
+// Mantem o custo do bcrypt quando o e-mail nao esta cadastrado, reduzindo
+// a diferenca de tempo que poderia permitir enumeracao de contas.
+const DUMMY_PASSWORD_HASH =
+  "$2b$10$AqiznTPwtwgLDpGd17ZwtufwzmoBZYs5arz3xOFngkWJz7G5SgXQ6";
 
 function setSessionHeaders(res: Response, tokens: AuthTokens) {
   res.set("Authorization", `Bearer ${tokens.accessToken}`);
@@ -158,15 +164,12 @@ async function login(
       $or: [{ emailHash }, { email: normalizedEmail }],
     }).select("+senha +emailHash +crnHash");
 
-    if (!user) {
-      const loginFailure = await registerLoginFailure(req, _res);
-      next(credenciaisInvalidasError(getLoginRemainingMessage(loginFailure)));
-      return;
-    }
+    const isPasswordValid = await bcrypt.compare(
+      safeUser.data.senha,
+      user?.senha ?? DUMMY_PASSWORD_HASH,
+    );
 
-    const isPasswordValid = await user.validarSenha(safeUser.data.senha);
-
-    if (!isPasswordValid) {
+    if (!user || !isPasswordValid) {
       const loginFailure = await registerLoginFailure(req, _res);
       next(credenciaisInvalidasError(getLoginRemainingMessage(loginFailure)));
       return;
