@@ -131,6 +131,7 @@ export const IPacienteDBSchema = IPacienteSchema.omit({
   sobrenome: z.string(),
   email: z.string().optional(),
   dataNascimento: z.string().optional(),
+  dataEntregaPrimeiroPlano: z.date().optional(),
   sexo: z.string(),
   observacoes: z.string().optional(),
   qtdPlanos: IQtdPlanosPacienteSchema,
