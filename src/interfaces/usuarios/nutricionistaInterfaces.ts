@@ -73,6 +73,9 @@ const IAtualizarNutricionista = INutricionistaSchema.omit({
   imagemCapa: true,
 })
   .partial()
+  .extend({
+    alimentosFavoritos: z.array(IAlimentoFavoritoSchema).optional(),
+  })
   .strict();
 
 type IAtualizarNutricionistaRequest = z.infer<typeof IAtualizarNutricionista>;

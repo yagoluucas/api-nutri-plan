@@ -37,6 +37,7 @@ async function buscarPacientes(req: Request, next: NextFunction) {
         dataEntregaPrimeiroPlano: formatDateOnly(
           paciente.dataEntregaPrimeiroPlano,
         ),
+        primeiroPlanoEntregue: paciente.primeiroPlanoEntregue ?? false,
         qtdPlanos: paciente.qtdPlanos,
         createdAt:
           paciente.createdAt?.toISOString() ?? new Date().toISOString(),
@@ -123,6 +124,7 @@ async function buscarPaciente(req: Request, next: NextFunction) {
         dataEntregaPrimeiroPlano: formatDateOnly(
           pacienteRecuperado.dataEntregaPrimeiroPlano,
         ),
+        primeiroPlanoEntregue: pacienteRecuperado.primeiroPlanoEntregue ?? false,
         sexo: pacienteRecuperado.getSexoDescriptografado(),
         observacoes: pacienteRecuperado.getObservacoesDescriptografadas(),
         qtdPlanos: pacienteRecuperado.qtdPlanos,

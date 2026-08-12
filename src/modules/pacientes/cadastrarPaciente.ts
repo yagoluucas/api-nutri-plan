@@ -35,6 +35,7 @@ async function cadastrarPaciente(
       ...pacienteInput,
       idNutricionista,
       dataNascimento: pacienteInput.dataNascimento?.toISOString(),
+      primeiroPlanoEntregue: false,
     });
     const dataNascimento = pacienteCriado.getDataNascimentoDescriptografada();
 
@@ -52,6 +53,7 @@ async function cadastrarPaciente(
         dataEntregaPrimeiroPlano: formatDateOnly(
           pacienteCriado.dataEntregaPrimeiroPlano,
         ),
+        primeiroPlanoEntregue: pacienteCriado.primeiroPlanoEntregue ?? false,
         sexo: pacienteCriado.getSexoDescriptografado(),
         observacoes: pacienteCriado.getObservacoesDescriptografadas(),
         qtdPlanos: pacienteCriado.qtdPlanos,

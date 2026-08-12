@@ -95,8 +95,6 @@ const IEvolucaoPacienteSchema = z.object({
   observacoes: z.string().optional(),
 });
 
-const IQtdPlanosPacienteSchema = z.number().int().min(0).optional();
-
 export const IPacienteSchema = IUsuarioSchema.pick({
   nome: true,
   sobrenome: true,
@@ -111,6 +109,7 @@ export const IPacienteSchema = IUsuarioSchema.pick({
   sexo: z.enum(["Masculino", "Feminino", "Outro"]),
   observacoes: optionalObservacoesPacienteSchema,
   evolucao: z.array(IEvolucaoPacienteSchema).optional(),
+  primeiroPlanoEntregue: z.boolean().default(false),
 });
 
 export type IPaciente = z.infer<typeof IPacienteSchema>;
@@ -134,7 +133,7 @@ export const IPacienteDBSchema = IPacienteSchema.omit({
   dataEntregaPrimeiroPlano: z.date().optional(),
   sexo: z.string(),
   observacoes: z.string().optional(),
-  qtdPlanos: IQtdPlanosPacienteSchema,
+  qtdPlanos: z.number().int().min(0).optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
 });
@@ -152,6 +151,7 @@ export interface IPacienteMethods {
 
 export const ICadastrarPacienteInputSchema = IPacienteSchema.omit({
   idNutricionista: true,
+  primeiroPlanoEntregue: true,
 });
 
 export const ICadastrarPacienteRequestSchema = z
@@ -166,10 +166,14 @@ export const IAtualizarPacienteInputSchema = IPacienteSchema.pick({
   email: true,
   dataNascimento: true,
   dataEntregaPrimeiroPlano: true,
+  primeiroPlanoEntregue: true,
   sexo: true,
   observacoes: true,
 })
   .partial()
+  .extend({
+    primeiroPlanoEntregue: z.boolean().optional(),
+  })
   .strict()
   .refine((paciente) => Object.keys(paciente).length > 0, {
     message: "Informe ao menos um campo para atualizar",
@@ -197,7 +201,8 @@ export const IPacienteRetornoSchema = IPacienteSchema.omit({
   id: z.string(),
   dataNascimento: z.string().optional(),
   dataEntregaPrimeiroPlano: z.string().optional(),
-  qtdPlanos: IQtdPlanosPacienteSchema,
+  primeiroPlanoEntregue: z.boolean().default(false),
+  qtdPlanos: z.number().int().min(0).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -211,7 +216,8 @@ export const IPacienteListaItemSchema = IPacienteSchema.pick({
     id: z.string(),
     dataNascimento: z.string().optional(),
     dataEntregaPrimeiroPlano: z.string().optional(),
-    qtdPlanos: IQtdPlanosPacienteSchema,
+    primeiroPlanoEntregue: z.boolean().default(false),
+    qtdPlanos: z.number().int().min(0).optional(),
     createdAt: z.string(),
     updatedAt: z.string(),
   })

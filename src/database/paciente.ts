@@ -30,6 +30,7 @@ const pacienteSchema = new Schema<IPacienteDB, PacienteModel, IPacienteMethods>(
     sexo: { type: String, required: true },
     observacoes: { type: String },
     qtdPlanos: { type: Number, min: 0, default: 0 },
+    primeiroPlanoEntregue: { type: Boolean, default: false },
   },
   {
     timestamps: true,

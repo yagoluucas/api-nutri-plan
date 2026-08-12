@@ -3,6 +3,7 @@ import Paciente from "../../database/paciente.js";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import { IErrorCause } from "../../interfaces/errors/erros.js";
 import {
+  IAtualizarPacienteInputSchema,
   IAtualizarPacienteRequestSchema,
   IBuscarUsuarioParamsSchema,
   IRetornoPacienteSchema,
@@ -54,35 +55,21 @@ async function atualizarPaciente(req: Request, next: NextFunction) {
     }
 
     const pacienteAtualizacao = pacienteSafe.data.paciente;
+    const camposPermitidos = new Set(
+      Object.keys(IAtualizarPacienteInputSchema.shape),
+    );
 
-    if (pacienteAtualizacao.nome !== undefined) {
-      pacienteRecuperado.nome = pacienteAtualizacao.nome;
-    }
+    for (const [campo, valor] of Object.entries(pacienteAtualizacao)) {
+      if (!camposPermitidos.has(campo)) {
+        continue;
+      }
 
-    if (pacienteAtualizacao.sobrenome !== undefined) {
-      pacienteRecuperado.sobrenome = pacienteAtualizacao.sobrenome;
-    }
-
-    if (pacienteAtualizacao.sexo !== undefined) {
-      pacienteRecuperado.sexo = pacienteAtualizacao.sexo;
-    }
-
-    if (Object.hasOwn(pacienteAtualizacao, "email")) {
-      pacienteRecuperado.email = pacienteAtualizacao.email;
-    }
-
-    if (Object.hasOwn(pacienteAtualizacao, "dataNascimento")) {
-      pacienteRecuperado.dataNascimento =
-        pacienteAtualizacao.dataNascimento?.toISOString();
-    }
-
-    if (Object.hasOwn(pacienteAtualizacao, "dataEntregaPrimeiroPlano")) {
-      pacienteRecuperado.dataEntregaPrimeiroPlano =
-        pacienteAtualizacao.dataEntregaPrimeiroPlano;
-    }
-
-    if (Object.hasOwn(pacienteAtualizacao, "observacoes")) {
-      pacienteRecuperado.observacoes = pacienteAtualizacao.observacoes;
+      pacienteRecuperado.set(
+        campo,
+        campo === "dataNascimento" && valor instanceof Date
+          ? valor.toISOString()
+          : valor,
+      );
     }
 
     await pacienteRecuperado.save({ validateModifiedOnly: true });
@@ -104,6 +91,8 @@ async function atualizarPaciente(req: Request, next: NextFunction) {
         dataEntregaPrimeiroPlano: formatDateOnly(
           pacienteRecuperado.dataEntregaPrimeiroPlano,
         ),
+        primeiroPlanoEntregue:
+          pacienteRecuperado.primeiroPlanoEntregue ?? false,
         sexo: pacienteRecuperado.getSexoDescriptografado(),
         observacoes: pacienteRecuperado.getObservacoesDescriptografadas(),
         qtdPlanos: pacienteRecuperado.qtdPlanos,
