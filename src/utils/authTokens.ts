@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import jwt from "jsonwebtoken";
+import { obterChaveSensivel } from "../config/secrets.js";
 import {
   AuthTokens,
   IAccessTokenPayloadSchema,
@@ -22,13 +23,11 @@ function configurationError(message: string) {
 }
 
 function getRequiredSecret(name: "JWT_SECRET" | "JWT_REFRESH_SECRET") {
-  const value = process.env[name]?.trim();
-
-  if (!value) {
+  try {
+    return obterChaveSensivel(name);
+  } catch {
     throw configurationError(`${name} nao configurada.`);
   }
-
-  return value;
 }
 
 function durationToSeconds(value: string, fallback: string) {

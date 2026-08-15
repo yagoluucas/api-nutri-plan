@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { obterChaveSensivel } from "../config/secrets.js";
 
 const AES_GCM_ALGORITHM = "aes-256-gcm";
 const AES_GCM_PREFIX = "v1.gcm";
@@ -9,13 +10,7 @@ const LEGACY_AES_CBC_ALGORITHM = "aes-256-cbc";
 export const PATIENT_DIET_PLAN_CONTEXT = "paciente:plano-alimentar";
 
 function getSecretKey(): Buffer {
-  const encryptionKey = process.env.ENCRYPTION_KEY;
-
-  if (!encryptionKey || !/^[a-fA-F0-9]{64}$/.test(encryptionKey)) {
-    throw new Error(
-      "ENCRYPTION_KEY deve conter exatamente 32 bytes em hexadecimal.",
-    );
-  }
+  const encryptionKey = obterChaveSensivel("ENCRYPTION_KEY");
 
   return Buffer.from(encryptionKey, "hex");
 }

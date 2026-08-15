@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 import { getRedisClient } from "../config/redis.js";
+import { obterChaveSensivel } from "../config/secrets.js";
 import { IErrorCause } from "../interfaces/errors/erros.js";
 
 type RateLimitPolicy = {
@@ -65,11 +66,7 @@ return { count, ttl }
 
 function getRateLimitKey(req: Request, policy: RateLimitPolicy) {
   const ip = req.ip || req.socket.remoteAddress || "unknown";
-  const secret = process.env.JWT_SECRET?.trim();
-
-  if (!secret) {
-    throw new Error("JWT_SECRET nao configurada.");
-  }
+  const secret = obterChaveSensivel("JWT_SECRET");
 
   const ipHash = crypto
     .createHmac("sha256", secret)

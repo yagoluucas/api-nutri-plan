@@ -3,6 +3,8 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import { corsOptions } from './config/cors.js';
+import { validarConfiguracaoBancoDeDados } from './config/database.js';
+import { validarConfiguracaoChavesSensiveis } from './config/secrets.js';
 import { recuperarAlimentosRouter } from './modules/alimentos/buscarAlimento.js';
 import { cadastrarAlimentosRouter } from './modules/alimentos/cadastraAlimento.js';
 import { authRouter } from './modules/auth/auth.js';
@@ -27,6 +29,8 @@ import {
 } from './middlewares/rateLimit.js';
 
 installConsoleRedaction();
+validarConfiguracaoChavesSensiveis();
+validarConfiguracaoBancoDeDados();
 
 const app = express();
 const port = Number(process.env.PORT) || 5000;

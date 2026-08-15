@@ -1,27 +1,8 @@
 import crypto from "node:crypto";
+import { obterChaveSensivel } from "../config/secrets.js";
 
 function getSearchHashKey(): Buffer {
-  const searchHashKey = process.env.SEARCH_HASH_KEY;
-
-  if (!searchHashKey || !/^[a-fA-F0-9]{64}$/.test(searchHashKey)) {
-    throw new Error(
-      "SEARCH_HASH_KEY deve conter exatamente 32 bytes em hexadecimal.",
-    );
-  }
-
-  const normalizedSearchHashKey = searchHashKey.toLowerCase();
-
-  if (
-    normalizedSearchHashKey === process.env.JWT_SECRET?.toLowerCase() ||
-    normalizedSearchHashKey === process.env.JWT_REFRESH_SECRET?.toLowerCase() ||
-    normalizedSearchHashKey === process.env.ENCRYPTION_KEY?.toLowerCase()
-  ) {
-    throw new Error(
-      "SEARCH_HASH_KEY deve ser exclusiva e diferente das demais chaves do ambiente.",
-    );
-  }
-
-  return Buffer.from(normalizedSearchHashKey, "hex");
+  return Buffer.from(obterChaveSensivel("SEARCH_HASH_KEY").toLowerCase(), "hex");
 }
 
 export function normalizeEmailForSearch(value: string) {
