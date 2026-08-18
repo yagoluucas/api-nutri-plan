@@ -6,12 +6,6 @@ import { sessaoEstaAtiva } from "../modules/auth/sessionService.js";
 import { verificarAccessToken } from "../utils/authTokens.js";
 import { isValidString } from "../utils/utils.js";
 
-const AUTH_COOKIE_NAMES = [
-  "accessToken",
-  "__Host-accessToken",
-  "nutriplan_token",
-];
-
 function authenticationError() {
   return new Error("Nao autorizado", {
     cause: {
@@ -20,6 +14,12 @@ function authenticationError() {
       statusCode: 401,
     } as IErrorCause,
   });
+}
+
+function setPrivateNoStoreHeaders(res: Response) {
+  res.setHeader("Cache-Control", "private, no-store, max-age=0");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
 }
 
 function getBearerToken(req: Request) {
@@ -37,22 +37,16 @@ function getBearerToken(req: Request) {
     }
   }
 
-  for (const cookieName of AUTH_COOKIE_NAMES) {
-    const token = req.cookies?.[cookieName];
-
-    if (isValidString(token)) {
-      return token;
-    }
-  }
-
   return null;
 }
 
 async function authMiddleware(
   req: Request,
-  _res: Response,
+  res: Response,
   next: NextFunction,
 ) {
+  setPrivateNoStoreHeaders(res);
+
   try {
     const token = getBearerToken(req);
 
@@ -90,10 +84,11 @@ async function authMiddleware(
     }
 
     req.nutricionistaId = parsedToken.id;
+    req.sessionId = parsedToken.sessionId;
     next();
   } catch (error) {
     next(error);
   }
 }
 
-export { authMiddleware };
+export { authMiddleware, setPrivateNoStoreHeaders };

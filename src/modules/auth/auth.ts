@@ -15,7 +15,10 @@ import {
 } from "../../interfaces/auth/emailConfirmationInterfaces.js";
 import { IErrorCause } from "../../interfaces/errors/erros.js";
 import { INutricionistaSchema } from "../../interfaces/usuarios/nutricionistaInterfaces.js";
-import { authMiddleware } from "../../middlewares/auth.js";
+import {
+  authMiddleware,
+  setPrivateNoStoreHeaders,
+} from "../../middlewares/auth.js";
 import {
   getLoginRemainingMessage,
   loginRateLimiter,
@@ -26,7 +29,7 @@ import {
 } from "../../middlewares/rateLimit.js";
 import {
   criarSessao,
-  revogarSessaoPorRefreshToken,
+  revogarSessaoAtual,
   revogarTodasSessoes,
   rotacionarSessao,
 } from "./sessionService.js";
@@ -48,6 +51,7 @@ const DUMMY_PASSWORD_HASH =
   "$2b$10$AqiznTPwtwgLDpGd17ZwtufwzmoBZYs5arz3xOFngkWJz7G5SgXQ6";
 
 function setSessionHeaders(res: Response, tokens: AuthTokens) {
+  setPrivateNoStoreHeaders(res);
   res.set("Authorization", `Bearer ${tokens.accessToken}`);
   res.set("X-Refresh-Token", tokens.refreshToken);
   res.set(
@@ -216,9 +220,25 @@ async function logout(req: Request, res: Response, next: NextFunction) {
     return;
   }
 
+  const idNutricionista = req.nutricionistaId;
+  const sessionId = req.sessionId;
+
+  if (!idNutricionista || !sessionId) {
+    next(
+      new Error("Nao autorizado", {
+        cause: {
+          cause: "Authentication Failed",
+          internalCause: "Invalid Token",
+          statusCode: 401,
+        } as IErrorCause,
+      }),
+    );
+    return;
+  }
+
   try {
     await conectarAoBancoDeDados();
-    await revogarSessaoPorRefreshToken(logoutSafe.data.refreshToken);
+    await revogarSessaoAtual(sessionId, idNutricionista);
 
     return res.status(200).json({
       message: "Logout realizado com sucesso",
@@ -302,7 +322,7 @@ authRouter.post("/login", loginRateLimiter, async (req, res, next) => {
 });
 
 authRouter.post("/refresh", refresh);
-authRouter.post("/logout", logout);
+authRouter.post("/logout", authMiddleware, logout);
 authRouter.post("/logout-all", authMiddleware, logoutAll);
 
 export { authRouter };

@@ -80,6 +80,8 @@ Ao duplicar uma aba autenticada, fazer logout em uma delas e entrar com outra co
 
 O back-end atualmente usa o `nutricionistaId` validado da sessao para cadastrar e consultar pacientes, portanto o registro fica associado ao proprietario do token realmente recebido. A pendencia e impedir que uma interface desatualizada execute a acao sob uma identidade diferente daquela mostrada ao usuario.
 
+No back-end, `POST /auth/logout` exige o access token via `Authorization: Bearer`, identifica a sessao pelo payload validado e a revoga no banco. As rotas protegidas verificam essa revogacao a cada requisicao e enviam `Cache-Control: no-store`; por isso, depois do logout, uma aba com o token antigo nao consegue consultar ou alterar dados novamente. O front-end ainda precisa remover imediatamente da tela os dados que ja estavam carregados.
+
 Antes de encerrar esta pendencia:
 
 - sincronizar eventos de login, logout e troca de conta entre abas;

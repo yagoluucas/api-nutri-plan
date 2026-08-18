@@ -13,6 +13,7 @@ declare global {
         interface Request{
             user?: Partial<INutricionista>;
             nutricionistaId?: string;
+            sessionId?: string;
         }
     }
 }

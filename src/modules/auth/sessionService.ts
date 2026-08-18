@@ -128,27 +128,22 @@ async function rotacionarSessao(refreshToken: string): Promise<AuthTokens> {
   throw authenticationError();
 }
 
-async function revogarSessaoPorRefreshToken(refreshToken?: string) {
-  if (!refreshToken) {
-    return;
-  }
+async function revogarSessaoAtual(
+  sessionId: string,
+  idNutricionista: string,
+) {
+  const result = await Sessao.updateOne(
+    {
+      _id: sessionId,
+      nutricionistaId: idNutricionista,
+    },
+    {
+      $set: { revokedAt: new Date() },
+    },
+  );
 
-  try {
-    const payload = verificarRefreshToken(refreshToken);
-
-    await Sessao.updateOne(
-      {
-        _id: payload.sessionId,
-        nutricionistaId: payload.id,
-        revokedAt: { $exists: false },
-      },
-      {
-        $set: { revokedAt: new Date() },
-      },
-    );
-  } catch {
-    // Logout e idempotente: um token invalido ou expirado nao deve impedir
-    // o cliente de limpar os cookies locais.
+  if (result.matchedCount === 0) {
+    throw authenticationError();
   }
 }
 
@@ -181,7 +176,7 @@ async function sessaoEstaAtiva(
 export {
   criarSessao,
   rotacionarSessao,
-  revogarSessaoPorRefreshToken,
+  revogarSessaoAtual,
   revogarTodasSessoes,
   sessaoEstaAtiva,
 };
