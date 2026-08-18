@@ -28,7 +28,11 @@ const INutricionistaSchema = IUsuarioSchema.extend({
   senha: z
     .string()
     .min(8, { message: "Senha deve ter pelo menos 8 caracteres" })
-    .max(20, { message: "Senha deve ter no máximo 20 caracteres" }),
+    .max(20, { message: "Senha deve ter no máximo 20 caracteres" })
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/,
+      "A senha deve conter pelo menos uma letra maiuscula, uma minuscula, um numero e um caractere especial.",
+    ),
   alimentosFavoritos: z.array(IAlimentoFavoritoSchema).default([]),
   imagemPerfil: IImagemNutricionistaSchema.optional(),
   imagemCapa: IImagemNutricionistaSchema.optional(),

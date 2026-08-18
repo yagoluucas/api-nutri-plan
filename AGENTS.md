@@ -20,6 +20,7 @@ O objetivo principal da API é fornecer autenticação, proteção de rotas, bus
 - Zod
 - bcrypt
 - jsonwebtoken
+- Nodemailer
 - cors
 - dotenv
 - tsx
@@ -344,6 +345,8 @@ MONGO_URL
 MONGO_DB_DATABASE_NAME
 JWT_SECRET
 JWT_EXPIRES_IN
+EMAIL_USER
+EMAIL_APP_PASSWORD
 JSON_BODY_LIMIT
 CORS_ORIGINS
 CORS_ORIGIN
@@ -352,6 +355,8 @@ CORS_CREDENTIALS
 ```
 
 `JWT_SECRET` é obrigatório para gerar e validar tokens.
+
+`EMAIL_USER` e `EMAIL_APP_PASSWORD` sao obrigatorios para enviar confirmacoes de cadastro. `EMAIL_APP_PASSWORD` deve ser uma senha de app do Google e nunca a senha principal da conta.
 
 `MONGO_DB_CONNECTION_STRING` ou `MONGO_URL` é obrigatório para conectar ao MongoDB.
 

@@ -9,16 +9,21 @@ import {
   ILogoutRequestSchema,
   IRefreshTokenRequestSchema,
 } from "../../interfaces/auth/authInterfaces.js";
+import {
+  IConfirmRegistrationSchema,
+  IResendRegistrationEmailSchema,
+} from "../../interfaces/auth/emailConfirmationInterfaces.js";
 import { IErrorCause } from "../../interfaces/errors/erros.js";
 import { INutricionistaSchema } from "../../interfaces/usuarios/nutricionistaInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
 import {
   getLoginRemainingMessage,
   loginRateLimiter,
+  registerConfirmRateLimiter,
   registerLoginFailure,
   registerRateLimiter,
+  registerResendRateLimiter,
 } from "../../middlewares/rateLimit.js";
-import { existeConflitoIdentidadeNutricionista } from "../nutricionista/nutricionistaHelpers.js";
 import {
   criarSessao,
   revogarSessaoPorRefreshToken,
@@ -27,9 +32,13 @@ import {
 } from "./sessionService.js";
 import {
   createSearchHash,
-  normalizeCrnForSearch,
   normalizeEmailForSearch,
 } from "../../utils/searchHash.js";
+import {
+  confirmarCadastro,
+  iniciarCadastro,
+  reenviarConfirmacao,
+} from "./registrationService.js";
 
 const authRouter = Router();
 
@@ -51,15 +60,6 @@ function setSessionHeaders(res: Response, tokens: AuthTokens) {
   );
 }
 
-function conflitoNutricionistaError() {
-  return new Error("Nutricionista ja cadastrado, tente novamente", {
-    cause: {
-      cause: "Conflict",
-      statusCode: 422,
-    } as IErrorCause,
-  });
-}
-
 function credenciaisInvalidasError(message: string) {
   return new Error(message, {
     cause: {
@@ -70,20 +70,10 @@ function credenciaisInvalidasError(message: string) {
   });
 }
 
-function isDuplicateKeyError(error: unknown) {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === 11000
-  );
-}
-
 async function register(
   req: Request,
-  _res: Response,
   next: NextFunction,
-): Promise<AuthResult | void> {
+) {
   const nutricionistSafe = INutricionistaSchema.safeParse(
     req.body?.nutricionista,
   );
@@ -94,51 +84,44 @@ async function register(
   }
 
   try {
-    await conectarAoBancoDeDados();
-    const emailHash = createSearchHash(
-      normalizeEmailForSearch(nutricionistSafe.data.email),
-    );
-    const crnHash = createSearchHash(
-      normalizeCrnForSearch(nutricionistSafe.data.crn),
-    );
-
-    const nutricionistExist = await existeConflitoIdentidadeNutricionista({
-      email: nutricionistSafe.data.email,
-      crn: nutricionistSafe.data.crn,
-    });
-
-    if (nutricionistExist) {
-      next(conflitoNutricionistaError());
-      return;
-    }
-
-    const createNutricionist = await Nutricionista.create({
-      ...nutricionistSafe.data,
-      dataNascimento: nutricionistSafe.data.dataNascimento.toISOString(),
-      emailHash,
-      crnHash,
-    });
-    const tokens = await criarSessao(createNutricionist._id.toString());
-
-    return {
-      tokens,
-      body: {
-        message: "Nutricionista cadastrado com sucesso",
-        error: false,
-        statusCode: 201,
-        user: {
-          id: createNutricionist._id.toString(),
-          nome: createNutricionist.getNomeDescriptografado(),
-          email: createNutricionist.getEmailDescriptografado(),
-        },
-      },
-    };
+    return await iniciarCadastro(nutricionistSafe.data, req);
   } catch (error) {
-    if (isDuplicateKeyError(error)) {
-      next(conflitoNutricionistaError());
-      return;
-    }
+    next(error);
+  }
+}
 
+async function resendRegistration(
+  req: Request,
+  next: NextFunction,
+) {
+  const resendSafe = IResendRegistrationEmailSchema.safeParse(req.body);
+
+  if (!resendSafe.success) {
+    next(resendSafe.error);
+    return;
+  }
+
+  try {
+    return await reenviarConfirmacao(resendSafe.data.email, req);
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function confirmRegistration(
+  req: Request,
+  next: NextFunction,
+) {
+  const confirmationSafe = IConfirmRegistrationSchema.safeParse(req.body);
+
+  if (!confirmationSafe.success) {
+    next(confirmationSafe.error);
+    return;
+  }
+
+  try {
+    return await confirmarCadastro(confirmationSafe.data.token);
+  } catch (error) {
     next(error);
   }
 }
@@ -278,13 +261,36 @@ async function logoutAll(req: Request, res: Response, next: NextFunction) {
 }
 
 authRouter.post("/register", registerRateLimiter, async (req, res, next) => {
-  const returnAuth = await register(req, res, next);
+  const result = await register(req, next);
 
-  if (returnAuth) {
-    setSessionHeaders(res, returnAuth.tokens);
-    return res.status(returnAuth.body.statusCode).json(returnAuth.body);
+  if (result) {
+    return res.status(result.statusCode).json(result);
   }
 });
+
+authRouter.post(
+  "/register/resend",
+  registerResendRateLimiter,
+  async (req, res, next) => {
+    const result = await resendRegistration(req, next);
+
+    if (result) {
+      return res.status(result.statusCode).json(result);
+    }
+  },
+);
+
+authRouter.post(
+  "/register/confirm",
+  registerConfirmRateLimiter,
+  async (req, res, next) => {
+    const result = await confirmRegistration(req, next);
+
+    if (result) {
+      return res.status(result.statusCode).json(result);
+    }
+  },
+);
 
 authRouter.post("/login", loginRateLimiter, async (req, res, next) => {
   const returnAuth = await login(req, res, next);

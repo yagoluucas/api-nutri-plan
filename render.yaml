@@ -17,6 +17,8 @@ services:
         value: "false"
       - key: CORS_ORIGINS
         sync: false
+      - key: FRONTEND_URL
+        sync: false
       - key: MONGO_DB_CONNECTION_STRING
         sync: false
       - key: MONGO_DB_DATABASE_NAME
@@ -32,6 +34,10 @@ services:
       - key: ENCRYPTION_KEY
         sync: false
       - key: SEARCH_HASH_KEY
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_APP_PASSWORD
         sync: false
       - key: REDIS_URL
         sync: false

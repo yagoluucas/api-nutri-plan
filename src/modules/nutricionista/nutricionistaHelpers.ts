@@ -1,5 +1,5 @@
 import { NextFunction, Request } from "express";
-import { HydratedDocument } from "mongoose";
+import { ClientSession, HydratedDocument } from "mongoose";
 import Nutricionista from "../../database/nutricionista.js";
 import { IErrorCause } from "../../interfaces/errors/erros.js";
 import {
@@ -93,10 +93,12 @@ async function existeConflitoIdentidadeNutricionista({
   email,
   crn,
   ignorarIdNutricionista,
+  session,
 }: {
   email: string;
   crn: string;
   ignorarIdNutricionista?: string;
+  session?: ClientSession;
 }) {
   const emailNormalizado = normalizeEmailForSearch(email);
   const crnNormalizado = normalizeCrnForSearch(crn);
@@ -106,16 +108,21 @@ async function existeConflitoIdentidadeNutricionista({
     ? { _id: { $ne: ignorarIdNutricionista } }
     : {};
 
-  const nutricionistaComMesmoHash = await Nutricionista.findOne({
+  const buscaPorHash = Nutricionista.findOne({
     ...filtroMesmoNutricionista,
     $or: [{ emailHash }, { crnHash }],
   });
+  if (session) {
+    buscaPorHash.session(session);
+  }
+
+  const nutricionistaComMesmoHash = await buscaPorHash;
 
   if (nutricionistaComMesmoHash) {
     return true;
   }
 
-  const cursorLegado = Nutricionista.find({
+  const buscaLegada = Nutricionista.find({
     ...filtroMesmoNutricionista,
     $or: [
       { emailHash: { $exists: false } },
@@ -123,7 +130,12 @@ async function existeConflitoIdentidadeNutricionista({
       { emailHash: null },
       { crnHash: null },
     ],
-  }).cursor();
+  });
+  if (session) {
+    buscaLegada.session(session);
+  }
+
+  const cursorLegado = buscaLegada.cursor();
 
   for await (const nutricionistaLegado of cursorLegado) {
     const emailLegado = normalizeEmailForSearch(

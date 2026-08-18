@@ -22,3 +22,12 @@ export function createSearchHash(normalizedValue: string) {
     .update(normalizedValue, "utf8")
     .digest("hex");
 }
+
+export function createContextualSearchHash(value: string, context: string) {
+  return crypto
+    .createHmac("sha256", getSearchHashKey())
+    .update(context, "utf8")
+    .update("\0", "utf8")
+    .update(value, "utf8")
+    .digest("hex");
+}

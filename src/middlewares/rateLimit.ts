@@ -9,6 +9,7 @@ type RateLimitPolicy = {
   limit: number;
   windowSeconds: number;
   message: string;
+  blockWhenLimitReached?: boolean;
 };
 
 type RateLimitState = {
@@ -53,6 +54,22 @@ const REGISTER_POLICY: RateLimitPolicy = {
   limit: 3,
   windowSeconds: 60 * 60,
   message: "Muitas tentativas de cadastro. Tente novamente mais tarde.",
+};
+
+const REGISTER_CONFIRM_POLICY: RateLimitPolicy = {
+  keyPrefix: "register-confirm",
+  limit: 10,
+  windowSeconds: 15 * 60,
+  message: "Muitas tentativas de confirmacao. Tente novamente mais tarde.",
+  blockWhenLimitReached: false,
+};
+
+const REGISTER_RESEND_POLICY: RateLimitPolicy = {
+  keyPrefix: "register-resend",
+  limit: 3,
+  windowSeconds: 60 * 60,
+  message: "Muitas solicitacoes de reenvio. Tente novamente mais tarde.",
+  blockWhenLimitReached: false,
 };
 
 const INCREMENT_SCRIPT = `
@@ -101,7 +118,10 @@ function stateFromValues(
     count,
     remaining: Math.max(0, policy.limit - count),
     retryAfterSeconds,
-    blocked: count >= policy.limit,
+    blocked:
+      policy.blockWhenLimitReached === false
+        ? count > policy.limit
+        : count >= policy.limit,
   };
 }
 
@@ -280,6 +300,16 @@ const registerRateLimiter = createCategoryRateLimiter(
   () => true,
 );
 
+const registerConfirmRateLimiter = createCategoryRateLimiter(
+  REGISTER_CONFIRM_POLICY,
+  () => true,
+);
+
+const registerResendRateLimiter = createCategoryRateLimiter(
+  REGISTER_RESEND_POLICY,
+  () => true,
+);
+
 async function registerLoginFailure(req: Request, res: Response) {
   const state = await incrementRateLimit(req, LOGIN_POLICY);
 
@@ -322,6 +352,8 @@ export {
   loginRateLimiter,
   readRateLimiter,
   registerLoginFailure,
+  registerConfirmRateLimiter,
   registerRateLimiter,
+  registerResendRateLimiter,
   writeRateLimiter,
 };

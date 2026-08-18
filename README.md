@@ -2,6 +2,22 @@
 
 Back-end do Nutri Plan desenvolvido com Node.js, Express, TypeScript, Mongoose, MongoDB e Zod.
 
+## Confirmacao de e-mail no cadastro
+
+`POST /auth/register` valida os dados e envia um link de confirmacao, mas nao cria o nutricionista nem uma sessao. O front-end abre o link em `FRONTEND_URL/confirmar-email`, le o token do fragmento da URL e envia `{ "token": "..." }` para `POST /auth/register/confirm`. O cadastro e persistido somente depois dessa confirmacao.
+
+Links de confirmacao expiram em 30 minutos e podem receber reenvio por `POST /auth/register/resend`. Para permitir um novo link, a pendencia criptografada e mantida por ate 24 horas e depois removida automaticamente pelo MongoDB. Dados pessoais ficam protegidos com AES-256-GCM, a senha permanece somente como hash bcrypt, e tokens e IPs nao sao armazenados em texto claro.
+
+Configure o envio pelo Gmail com:
+
+```env
+FRONTEND_URL=http://localhost:3000
+EMAIL_USER=seu-email@gmail.com
+EMAIL_APP_PASSWORD=senha-de-app-do-google
+```
+
+`EMAIL_APP_PASSWORD` deve ser uma senha de app exclusiva, gerada em uma conta Google com verificacao em duas etapas. Nunca use nem versione a senha principal da conta.
+
 ## Bancos de desenvolvimento e producao
 
 O nome do banco e sempre selecionado por `MONGO_DB_DATABASE_NAME`. Mesmo que a connection string contenha outro nome, a opcao `dbName` do Mongoose prevalece.
@@ -57,6 +73,20 @@ Execute o comando quatro vezes e use valores diferentes para as quatro variaveis
 ## Debitos tecnicos
 
 Este arquivo registra pontos conhecidos que devem ser revisitados sem bloquear o desenvolvimento atual.
+
+### P1 — Coerencia de sessao entre abas e troca de conta
+
+Ao duplicar uma aba autenticada, fazer logout em uma delas e entrar com outra conta, a aba antiga pode continuar exibindo os dados visuais da primeira conta. Como cookies de autenticacao sao compartilhados entre abas do mesmo navegador, uma nova requisicao dessa aba antiga pode ser enviada com a sessao da conta mais recente e executar uma escrita em nome dela.
+
+O back-end atualmente usa o `nutricionistaId` validado da sessao para cadastrar e consultar pacientes, portanto o registro fica associado ao proprietario do token realmente recebido. A pendencia e impedir que uma interface desatualizada execute a acao sob uma identidade diferente daquela mostrada ao usuario.
+
+Antes de encerrar esta pendencia:
+
+- sincronizar eventos de login, logout e troca de conta entre abas;
+- ao recuperar foco, revalidar a identidade da sessao antes de permitir operacoes protegidas;
+- rejeitar operacoes de escrita quando o contexto de sessao esperado pela aba divergir da sessao autenticada no servidor;
+- redirecionar ou atualizar imediatamente abas com sessao revogada ou substituida;
+- adicionar um teste com duas abas garantindo que uma aba desatualizada nao consiga criar, alterar ou excluir dados sob a nova conta.
 
 ### Contrato de atualizacao de paciente
 

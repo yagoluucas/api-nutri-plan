@@ -27,6 +27,9 @@ type NutricionistaDocument = mongoose.HydratedDocument<
   INutricionistaMethods
 >;
 
+const BCRYPT_HASH_PATTERN = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/;
+const TRUSTED_PASSWORD_HASH_LOCAL = "trustedPasswordHash";
+
 const alimentoFavoritoSchema = new Schema(
   {
     idAlimento: { type: String, required: true, trim: true },
@@ -56,12 +59,7 @@ const nutricionistaSchema = new Schema<
     senha: {
       type: String,
       required: true,
-      minLength: 8,
       select: false,
-      match: [
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/,
-        "A senha deve conter pelo menos uma letra maiuscula, uma minuscula, um numero e um caractere especial.",
-      ],
     },
     alimentosFavoritos: { type: [alimentoFavoritoSchema], default: [] },
     imagemPerfil: { type: String, trim: true },
@@ -170,6 +168,18 @@ nutricionistaSchema.pre("validate", function () {
 nutricionistaSchema.pre("save", async function () {
   if (!this.isModified("senha")) return;
 
+  if (this.$locals[TRUSTED_PASSWORD_HASH_LOCAL] === true) {
+    if (
+      !BCRYPT_HASH_PATTERN.test(this.senha) ||
+      bcrypt.getRounds(this.senha) < 10
+    ) {
+      throw new Error("Hash bcrypt interno invalido.");
+    }
+
+    delete this.$locals[TRUSTED_PASSWORD_HASH_LOCAL];
+    return;
+  }
+
   const saltRounds = 10;
   this.senha = await bcrypt.hash(this.senha, saltRounds);
 });
@@ -233,4 +243,11 @@ const Nutricionista = mongoose.model<INutricionistaDB, NutricionistaModel>(
   nutricionistaSchema,
 );
 
+function marcarSenhaHasheadaComoConfiavel(
+  nutricionista: NutricionistaDocument,
+) {
+  nutricionista.$locals[TRUSTED_PASSWORD_HASH_LOCAL] = true;
+}
+
+export { marcarSenhaHasheadaComoConfiavel };
 export default Nutricionista;

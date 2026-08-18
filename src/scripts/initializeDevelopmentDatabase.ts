@@ -7,6 +7,7 @@ import {
   validarConfiguracaoBancoDeDados,
 } from "../config/database.js";
 import { Alimento } from "../database/alimento.js";
+import CadastroPendente from "../database/cadastroPendente.js";
 import { conectarAoBancoDeDados } from "../database/conexaoAoBanco.js";
 import Nutricionista from "../database/nutricionista.js";
 import Paciente from "../database/paciente.js";
@@ -17,6 +18,7 @@ import { logger } from "../utils/logger.js";
 const DEVELOPMENT_VALIDATION_COLLECTION = "__development_connection_validation";
 const applicationModels = [
   Alimento,
+  CadastroPendente,
   Nutricionista,
   Paciente,
   PlanoAlimentar,
