@@ -17,10 +17,6 @@ const IResendRegistrationEmailSchema = z
   })
   .strict();
 
-type IResendRegistrationEmail = z.infer<
-  typeof IResendRegistrationEmailSchema
->;
-
 const IConfirmRegistrationSchema = z
   .object({
     token: z
@@ -29,8 +25,6 @@ const IConfirmRegistrationSchema = z
       .regex(/^[A-Za-z0-9_-]{43}$/, "Token de confirmacao invalido"),
   })
   .strict();
-
-type IConfirmRegistration = z.infer<typeof IConfirmRegistrationSchema>;
 
 const IRegistrationAcceptedResponseSchema = IRetornoApiSchema.extend({
   error: z.literal(false),
@@ -43,7 +37,6 @@ const IRegistrationConfirmedResponseSchema = IRetornoApiSchema.extend({
 }).strict();
 
 const IDeliveryStatusSchema = z.enum(["pending", "sent", "failed"]);
-type IDeliveryStatus = z.infer<typeof IDeliveryStatusSchema>;
 
 const ICadastroPendenteDBSchema = z.object({
   registrationDataEncrypted: z.string().min(1),
@@ -70,13 +63,10 @@ export {
   ICadastroPendenteDBSchema,
   ICadastroPendenteDB,
   IConfirmRegistrationSchema,
-  IConfirmRegistration,
   IDeliveryStatusSchema,
-  IDeliveryStatus,
   IRegistrationDataSchema,
   IRegistrationData,
   IRegistrationAcceptedResponseSchema,
   IRegistrationConfirmedResponseSchema,
   IResendRegistrationEmailSchema,
-  IResendRegistrationEmail,
 };

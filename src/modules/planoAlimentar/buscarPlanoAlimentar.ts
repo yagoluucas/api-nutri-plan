@@ -1,8 +1,8 @@
 import { NextFunction, Request, Router } from "express";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import PlanoAlimentar from "../../database/planoAlimentar.js";
+import { IIdPacienteParamsSchema } from "../../interfaces/generalInterfaces.js";
 import {
-  IPlanoAlimentarPacienteParamsSchema,
   IRetornoPlanosAlimentaresSchema,
 } from "../../interfaces/planoAlimentar/planoAlimentarInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
@@ -12,8 +12,8 @@ import {
 } from "../pacientes/pacienteHelpers.js";
 import { isPlanoAlimentarValido, normalizarPlanoAlimentar } from "./planoAlimentarHelpers.js";
 
-async function buscarPlanosAlimentares(req: Request, next: NextFunction) {
-  const params = IPlanoAlimentarPacienteParamsSchema.safeParse(req.params);
+export async function buscarPlanosAlimentares(req: Request, next: NextFunction) {
+  const params = IIdPacienteParamsSchema.safeParse(req.params);
 
   if (!params.success) {
     next(params.error);

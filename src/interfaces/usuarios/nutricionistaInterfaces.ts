@@ -69,8 +69,6 @@ const IPerfilNutricionistaSchema = INutricionistaSchema.omit({
   updatedAt: z.string().optional(),
 });
 
-type IPerfilNutricionista = z.infer<typeof IPerfilNutricionistaSchema>;
-
 const IAtualizarNutricionista = INutricionistaSchema.omit({
   senha: true,
   imagemPerfil: true,
@@ -81,8 +79,6 @@ const IAtualizarNutricionista = INutricionistaSchema.omit({
     alimentosFavoritos: z.array(IAlimentoFavoritoSchema).optional(),
   })
   .strict();
-
-type IAtualizarNutricionistaRequest = z.infer<typeof IAtualizarNutricionista>;
 
 const IRetornoPerfilNutricionistaSchema = IRetornoApiSchema.extend({
   nutricionista: IPerfilNutricionistaSchema,
@@ -107,9 +103,7 @@ export {
   INutricionistaDBSchema,
   INutricionistaDB,
   IPerfilNutricionistaSchema,
-  IPerfilNutricionista,
   IAtualizarNutricionista,
-  IAtualizarNutricionistaRequest,
   IRetornoPerfilNutricionistaSchema,
   INutricionistaMethods,
   NutricionistaModel,

@@ -2,8 +2,8 @@ import { NextFunction, Request, Router } from "express";
 import Paciente from "../../database/paciente.js";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import { IErrorCause } from "../../interfaces/errors/erros.js";
+import { IIdPacienteParamsSchema } from "../../interfaces/generalInterfaces.js";
 import {
-  IBuscarUsuarioParamsSchema,
   IRetornoPacienteSchema,
   IRetornoPacientesSchema,
 } from "../../interfaces/usuarios/pacienteInterfaces.js";
@@ -73,7 +73,7 @@ async function buscarPacientes(req: Request, next: NextFunction) {
 }
 
 async function buscarPaciente(req: Request, next: NextFunction) {
-  const pacienteParams = IBuscarUsuarioParamsSchema.safeParse(req.params);
+  const pacienteParams = IIdPacienteParamsSchema.safeParse(req.params);
 
   if (!pacienteParams.success) {
     next(pacienteParams.error);

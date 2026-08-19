@@ -2,10 +2,10 @@ import { NextFunction, Request, Router } from "express";
 import Paciente from "../../database/paciente.js";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import { IErrorCause } from "../../interfaces/errors/erros.js";
+import { IIdPacienteParamsSchema } from "../../interfaces/generalInterfaces.js";
 import {
   IAtualizarPacienteInputSchema,
   IAtualizarPacienteRequestSchema,
-  IBuscarUsuarioParamsSchema,
   IRetornoPacienteSchema,
 } from "../../interfaces/usuarios/pacienteInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
@@ -13,7 +13,7 @@ import { formatDateOnly } from "../../utils/utils.js";
 import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
 
 async function atualizarPaciente(req: Request, next: NextFunction) {
-  const pacienteParams = IBuscarUsuarioParamsSchema.safeParse(req.params);
+  const pacienteParams = IIdPacienteParamsSchema.safeParse(req.params);
 
   if (!pacienteParams.success) {
     next(pacienteParams.error);

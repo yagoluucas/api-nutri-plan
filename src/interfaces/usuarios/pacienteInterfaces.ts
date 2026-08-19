@@ -112,8 +112,6 @@ export const IPacienteSchema = IUsuarioSchema.pick({
   primeiroPlanoEntregue: z.boolean().default(false),
 });
 
-export type IPaciente = z.infer<typeof IPacienteSchema>;
-
 // O contrato da API continua usando dados em texto claro. Esta estrutura representa
 // somente o formato interno armazenado pelo Mongoose, onde os campos sensiveis ficam
 // cifrados e os planos sao persistidos como payloads AES-GCM.
@@ -182,15 +180,6 @@ export const IAtualizarPacienteInputSchema = IPacienteSchema.pick({
 export const IAtualizarPacienteRequestSchema = z
   .object({
     paciente: IAtualizarPacienteInputSchema,
-  })
-  .strict();
-
-export const IBuscarUsuarioParamsSchema = z
-  .object({
-    idPaciente: z
-      .string()
-      .trim()
-      .regex(/^[a-fA-F0-9]{24}$/, "Id do paciente invalido"),
   })
   .strict();
 

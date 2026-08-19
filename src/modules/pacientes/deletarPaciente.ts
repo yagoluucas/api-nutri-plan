@@ -1,14 +1,18 @@
 import { NextFunction, Request, Router } from "express";
+import mongoose from "mongoose";
 import Paciente from "../../database/paciente.js";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import { IErrorCause } from "../../interfaces/errors/erros.js";
-import { IRetornoApiSchema } from "../../interfaces/generalInterfaces.js";
-import { IBuscarUsuarioParamsSchema } from "../../interfaces/usuarios/pacienteInterfaces.js";
+import {
+  IIdPacienteParamsSchema,
+  IRetornoApiSchema,
+} from "../../interfaces/generalInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
+import { deletarPlanosAlimentares } from "../planoAlimentar/deletarPlanoAlimentar.js";
 import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
 
 async function deletarPaciente(req: Request, next: NextFunction) {
-  const pacienteParams = IBuscarUsuarioParamsSchema.safeParse(req.params);
+  const pacienteParams = IIdPacienteParamsSchema.safeParse(req.params);
 
   if (!pacienteParams.success) {
     next(pacienteParams.error);
@@ -24,22 +28,35 @@ async function deletarPaciente(req: Request, next: NextFunction) {
       return;
     }
 
-    const pacienteDeletado = await Paciente.findOneAndDelete({
-      _id: pacienteParams.data.idPaciente,
-      idNutricionista,
-    });
+    const session = await mongoose.startSession();
 
-    if (!pacienteDeletado) {
-      next(
-        new Error("Paciente nao encontrado", {
-          cause: {
-            cause: "Not Found",
-            internalCause: "Data Not Found",
-            statusCode: 404,
-          } as IErrorCause,
-        }),
-      );
-      return;
+    try {
+      await session.withTransaction(async () => {
+        const pacienteDeletado = await Paciente.findOneAndDelete(
+          {
+            _id: pacienteParams.data.idPaciente,
+            idNutricionista,
+          },
+          { session },
+        );
+
+        if (!pacienteDeletado) {
+          throw new Error("Paciente nao encontrado", {
+            cause: {
+              cause: "Not Found",
+              internalCause: "Data Not Found",
+              statusCode: 404,
+            } as IErrorCause,
+          });
+        }
+
+        await deletarPlanosAlimentares(
+          pacienteParams.data.idPaciente,
+          session,
+        );
+      });
+    } finally {
+      await session.endSession();
     }
 
     return IRetornoApiSchema.parse({

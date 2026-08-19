@@ -6,6 +6,13 @@ const IRetornoApiSchema = z.object({
     statusCode: z.number()
 });
 
-type IRetornoApi = z.infer<typeof IRetornoApiSchema>;
+const IIdPacienteParamsSchema = z
+  .object({
+    idPaciente: z
+      .string()
+      .trim()
+      .regex(/^[a-fA-F0-9]{24}$/, "Id do paciente invalido"),
+  })
+  .strict();
 
-export { IRetornoApiSchema, IRetornoApi };
+export { IIdPacienteParamsSchema, IRetornoApiSchema };

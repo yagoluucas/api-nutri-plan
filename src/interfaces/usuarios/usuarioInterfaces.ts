@@ -11,6 +11,4 @@ const IUsuarioSchema = z.object({
         .max(new Date(new Date().getFullYear() - 15, new Date().getMonth(), new Date().getDate()), "Você precisa ter no mínimo 15 anos para se cadastrar"),
 });
 
-type IUsuario = z.infer<typeof IUsuarioSchema>;
-
-export { IUsuarioSchema, IUsuario }
+export { IUsuarioSchema }

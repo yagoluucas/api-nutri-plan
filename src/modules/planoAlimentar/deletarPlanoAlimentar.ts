@@ -1,4 +1,5 @@
 import { NextFunction, Request, Router } from "express";
+import type { ClientSession } from "mongoose";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import Paciente from "../../database/paciente.js";
 import PlanoAlimentar from "../../database/planoAlimentar.js";
@@ -10,6 +11,16 @@ import {
   getIdNutricionistaAutenticado,
 } from "../pacientes/pacienteHelpers.js";
 import { nextPlanoAlimentarNaoEncontrado } from "./planoAlimentarHelpers.js";
+
+async function deletarPlanosAlimentares(
+  idPaciente: string,
+  session: ClientSession,
+) {
+  await PlanoAlimentar.deleteMany(
+    { idPaciente },
+    { session },
+  );
+}
 
 async function deletarPlanoAlimentar(req: Request, next: NextFunction) {
   const params = IPlanoAlimentarParamsSchema.safeParse(req.params);
@@ -86,4 +97,4 @@ deletarPlanoAlimentarRouter.delete(
   },
 );
 
-export { deletarPlanoAlimentarRouter };
+export { deletarPlanoAlimentarRouter, deletarPlanosAlimentares };

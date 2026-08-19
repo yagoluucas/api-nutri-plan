@@ -2,9 +2,9 @@ import { NextFunction, Request, Router } from "express";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import Paciente from "../../database/paciente.js";
 import PlanoAlimentar from "../../database/planoAlimentar.js";
+import { IIdPacienteParamsSchema } from "../../interfaces/generalInterfaces.js";
 import {
   ICadastrarPlanoAlimentarRequestSchema,
-  IPlanoAlimentarPacienteParamsSchema,
   IRetornoPlanoAlimentarSchema,
 } from "../../interfaces/planoAlimentar/planoAlimentarInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
@@ -18,7 +18,7 @@ import {
 } from "./planoAlimentarHelpers.js";
 
 async function cadastrarPlanoAlimentar(req: Request, next: NextFunction) {
-  const params = IPlanoAlimentarPacienteParamsSchema.safeParse(req.params);
+  const params = IIdPacienteParamsSchema.safeParse(req.params);
 
   if (!params.success) {
     next(params.error);

@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 const tipoMedidaSchema = z.enum(["Caseira", "Tecnica"]);
-type tipoMedida = z.infer<typeof tipoMedidaSchema>;
 
 const INutrienteSchema = z.object({
     nomeComponente: z.string(),
@@ -33,5 +32,5 @@ export {
     INutrienteSchema, INutriente, 
     IMedidasCaseirasSchema, IMedidasCaseiras, 
     IAlimentoSchema, IAlimento, 
-    tipoMedidaSchema, tipoMedida 
+    tipoMedidaSchema
 };

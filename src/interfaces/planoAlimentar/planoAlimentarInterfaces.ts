@@ -1,6 +1,9 @@
 import z from "zod";
 import { Model } from "mongoose";
-import { IRetornoApiSchema } from "../generalInterfaces";
+import {
+  IIdPacienteParamsSchema,
+  IRetornoApiSchema,
+} from "../generalInterfaces.js";
 
 export const IMedidaSelecionadaPlanoAlimentarSchema = z.object({
   nomeMedida: z.string().trim().min(1, "O nome da medida e obrigatorio"),
@@ -11,19 +14,11 @@ export const IMedidaSelecionadaPlanoAlimentarSchema = z.object({
   tipoMedida: z.enum(["Caseira", "Tecnica"]),
 });
 
-export type IMedidaSelecionadaPlanoAlimentar = z.infer<
-  typeof IMedidaSelecionadaPlanoAlimentarSchema
->;
-
 export const IAlimentoPlanoAlimentarSchema = z.object({
   codigoAlimento: z.string({ error: "O codigo do alimento e obrigatorio" }),
   quantidade: z.number().positive("A quantidade deve ser maior que zero"),
   medidaSelecionada: IMedidaSelecionadaPlanoAlimentarSchema,
 });
-
-export type IAlimentoPlanoAlimentar = z.infer<
-  typeof IAlimentoPlanoAlimentarSchema
->;
 
 export const IRefeicaoPlanoAlimentarSchema = z.object({
   nome: z.string().trim().min(1, "O nome da refeicao e obrigatorio").max(30),
@@ -39,10 +34,6 @@ export const IRefeicaoPlanoAlimentarSchema = z.object({
     .min(1, "A refeicao deve ter pelo menos 1 alimento"),
 });
 
-export type IRefeicaoPlanoAlimentar = z.infer<
-  typeof IRefeicaoPlanoAlimentarSchema
->;
-
 export const IPlanoAlimentarSchema = z.object({
   tituloPlano: z.string().optional(),
   objetivoDoPlano: z.string().optional(),
@@ -57,8 +48,6 @@ export type IPlanoAlimentar = z.infer<typeof IPlanoAlimentarSchema>;
 export const IPlanoAlimentarInputSchema = IPlanoAlimentarSchema.extend({
   planoAtivo: z.boolean().optional(),
 });
-
-export type IPlanoAlimentarInput = z.infer<typeof IPlanoAlimentarInputSchema>;
 
 // Estrutura interna persistida no MongoDB. O conteudo do plano fica criptografado,
 // enquanto campos operacionais ficam abertos para filtros e atualizacoes simples.
@@ -89,17 +78,8 @@ export const IPlanoAlimentarRetornoSchema = IPlanoAlimentarSchema.extend({
   planoAtivo: z.boolean(),
 });
 
-export const IPlanoAlimentarPacienteParamsSchema = z
-  .object({
-    idPaciente: z
-      .string()
-      .trim()
-      .regex(/^[a-fA-F0-9]{24}$/, "Id do paciente invalido"),
-  })
-  .strict();
-
 export const IPlanoAlimentarParamsSchema =
-  IPlanoAlimentarPacienteParamsSchema.extend({
+  IIdPacienteParamsSchema.extend({
     idPlano: z
       .string()
       .trim()
