@@ -13,11 +13,15 @@ import {
 import { nextPlanoAlimentarNaoEncontrado } from "./planoAlimentarHelpers.js";
 
 async function deletarPlanosAlimentares(
-  idPaciente: string,
+  idsPacientes: string[],
   session: ClientSession,
 ) {
+  if (idsPacientes.length === 0) {
+    return;
+  }
+
   await PlanoAlimentar.deleteMany(
-    { idPaciente },
+    { idPaciente: { $in: idsPacientes } },
     { session },
   );
 }

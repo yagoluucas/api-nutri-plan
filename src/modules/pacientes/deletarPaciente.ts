@@ -51,7 +51,7 @@ async function deletarPaciente(req: Request, next: NextFunction) {
         }
 
         await deletarPlanosAlimentares(
-          pacienteParams.data.idPaciente,
+          [pacienteParams.data.idPaciente],
           session,
         );
       });

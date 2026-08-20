@@ -8,6 +8,7 @@ import { IRetornoApiSchema } from "../../interfaces/generalInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
 import Paciente from "../../database/paciente.js";
 import Sessao from "../../database/sessao.js";
+import { deletarPlanosAlimentares } from "../planoAlimentar/deletarPlanoAlimentar.js";
 
 async function deletarNutricionista(req: Request, next: NextFunction) {
   try {
@@ -37,6 +38,18 @@ async function deletarNutricionista(req: Request, next: NextFunction) {
             } as IErrorCause,
           });
         }
+
+        const pacientes = await Paciente.find(
+          { idNutricionista },
+          { _id: 1 },
+          { session },
+        ).lean();
+
+        const idsPacientes = pacientes.map((paciente) =>
+          String(paciente._id),
+        );
+
+        await deletarPlanosAlimentares(idsPacientes, session);
 
         const pacientesDeletados = await Paciente.deleteMany(
           { idNutricionista },
