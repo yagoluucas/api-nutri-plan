@@ -14,7 +14,8 @@ const nutricionistaImageUpload = multer({
     fields: 6,
     fieldNameSize: 40,
     fieldSize: 64 * 1024,
-    parts: 8,
+    // O Busboy conta o boundary final: 6 campos + 2 arquivos + 1.
+    parts: 9,
   },
 }).fields([
   { name: "imagemPerfil", maxCount: 1 },

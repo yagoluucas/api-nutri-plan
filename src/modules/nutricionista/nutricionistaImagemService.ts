@@ -82,6 +82,7 @@ async function enviarImagemNutricionista({
     secure: true,
     resource_type: "image",
     type: "upload",
+    version: uploadResult.version,
     fetch_format: "auto",
     quality: "auto",
     transformation: [obterTransformacaoImagem(tipo)],
