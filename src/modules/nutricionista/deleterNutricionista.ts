@@ -54,10 +54,7 @@ async function deletarNutricionista(req: Request, next: NextFunction) {
         }
 
         const pacientes = await Paciente.find(
-          {
-            idNutricionista,
-            archivedAt: { $exists: false },
-          },
+          { idNutricionista },
           { _id: 1 },
           { session },
         ).lean();
