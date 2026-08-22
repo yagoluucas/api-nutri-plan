@@ -23,10 +23,7 @@ async function arquivarPlanosAlimentares(
   }
 
   await PlanoAlimentar.updateMany(
-    {
-      idPaciente: { $in: idsPacientes },
-      archivedAt: { $exists: false },
-    },
+    { idPaciente: { $in: idsPacientes } },
     {
       $set: {
         archivedAt,
