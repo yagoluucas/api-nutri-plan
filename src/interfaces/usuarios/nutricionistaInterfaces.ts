@@ -54,6 +54,8 @@ const INutricionistaDBSchema = INutricionistaSchema.omit({
   crn: z.string(),
   emailHash: z.string(),
   crnHash: z.string(),
+  archivedAt: z.date().optional(),
+  purgeAt: z.date().optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
 });

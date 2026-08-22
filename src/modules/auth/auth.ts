@@ -148,7 +148,10 @@ async function login(
     const emailHash = createSearchHash(normalizedEmail);
 
     const user = await Nutricionista.findOne({
-      $or: [{ emailHash }, { email: normalizedEmail }],
+      $and: [
+        { $or: [{ emailHash }, { email: normalizedEmail }] },
+        { archivedAt: { $exists: false } },
+      ],
     }).select("+senha +emailHash +crnHash");
 
     const isPasswordValid = await bcrypt.compare(

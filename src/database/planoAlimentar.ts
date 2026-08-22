@@ -20,6 +20,8 @@ const planoAlimentarSchema = new Schema<IPlanoAlimentarDB, PlanoAlimentarModel>(
       type: String,
       required: true,
     },
+    archivedAt: { type: Date },
+    purgeAt: { type: Date },
   },
   {
     collection: "plano_alimentar",
@@ -28,6 +30,7 @@ const planoAlimentarSchema = new Schema<IPlanoAlimentarDB, PlanoAlimentarModel>(
 );
 
 planoAlimentarSchema.index({ idPaciente: 1, createdAt: -1 });
+planoAlimentarSchema.index({ purgeAt: 1 }, { expireAfterSeconds: 0 });
 
 const PlanoAlimentar = mongoose.model<IPlanoAlimentarDB, PlanoAlimentarModel>(
   "PlanoAlimentar",

@@ -28,6 +28,7 @@ async function buscarPacienteAutorizado(
   const paciente = await Paciente.findOne({
     _id: idPaciente,
     idNutricionista,
+    archivedAt: { $exists: false },
   });
 
   if (!paciente) {

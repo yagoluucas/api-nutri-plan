@@ -64,11 +64,15 @@ const nutricionistaSchema = new Schema<
     alimentosFavoritos: { type: [alimentoFavoritoSchema], default: [] },
     imagemPerfil: { type: String, trim: true },
     imagemCapa: { type: String, trim: true },
+    archivedAt: { type: Date },
+    purgeAt: { type: Date },
   },
   {
     timestamps: true,
   },
 );
+
+nutricionistaSchema.index({ purgeAt: 1 }, { expireAfterSeconds: 0 });
 
 function getCampoTextoClaroObrigatorio(
   nutricionista: NutricionistaDocument,

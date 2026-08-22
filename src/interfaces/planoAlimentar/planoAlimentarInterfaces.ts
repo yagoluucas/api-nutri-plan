@@ -58,6 +58,8 @@ export const IPlanoAlimentarPersistidoSchema = z.object({
     .regex(/^[a-fA-F0-9]{24}$/, "Id do paciente invalido"),
   planoAtivo: z.boolean().optional(),
   conteudoProtegido: z.string(),
+  archivedAt: z.date().optional(),
+  purgeAt: z.date().optional(),
 });
 
 export type IPlanoAlimentarPersistido = z.infer<

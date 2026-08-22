@@ -23,6 +23,7 @@ async function buscarPacientes(req: Request, next: NextFunction) {
 
     const pacientesRecuperados = await Paciente.find({
       idNutricionista,
+      archivedAt: { $exists: false },
     }).sort({ createdAt: -1 });
 
     const pacientes = pacientesRecuperados
@@ -92,6 +93,7 @@ async function buscarPaciente(req: Request, next: NextFunction) {
     const pacienteRecuperado = await Paciente.findOne({
       _id: pacienteParams.data.idPaciente,
       idNutricionista,
+      archivedAt: { $exists: false },
     });
 
     if (!pacienteRecuperado) {
