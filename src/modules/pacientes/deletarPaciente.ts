@@ -1,5 +1,6 @@
 import { NextFunction, Request, Router } from "express";
 import mongoose from "mongoose";
+import { addDays, archiveRetention } from "../../config/archiveRetention.js";
 import Paciente from "../../database/paciente.js";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import { IErrorCause } from "../../interfaces/errors/erros.js";
@@ -8,7 +9,7 @@ import {
   IRetornoApiSchema,
 } from "../../interfaces/generalInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
-import { deletarPlanosAlimentares } from "../planoAlimentar/deletarPlanoAlimentar.js";
+import { arquivarPlanosAlimentares } from "../planoAlimentar/deletarPlanoAlimentar.js";
 import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
 
 async function deletarPaciente(req: Request, next: NextFunction) {
@@ -32,15 +33,23 @@ async function deletarPaciente(req: Request, next: NextFunction) {
 
     try {
       await session.withTransaction(async () => {
-        const pacienteDeletado = await Paciente.findOneAndDelete(
+        const archivedAt = new Date();
+        const pacienteArquivado = await Paciente.findOneAndUpdate(
           {
             _id: pacienteParams.data.idPaciente,
             idNutricionista,
+            archivedAt: { $exists: false },
           },
-          { session },
+          {
+            $set: {
+              archivedAt,
+              purgeAt: addDays(archivedAt, archiveRetention.pacienteDays),
+            },
+          },
+          { session, new: true },
         );
 
-        if (!pacienteDeletado) {
+        if (!pacienteArquivado) {
           throw new Error("Paciente nao encontrado", {
             cause: {
               cause: "Not Found",
@@ -50,8 +59,9 @@ async function deletarPaciente(req: Request, next: NextFunction) {
           });
         }
 
-        await deletarPlanosAlimentares(
+        await arquivarPlanosAlimentares(
           [pacienteParams.data.idPaciente],
+          archivedAt,
           session,
         );
       });
@@ -60,12 +70,12 @@ async function deletarPaciente(req: Request, next: NextFunction) {
     }
 
     return IRetornoApiSchema.parse({
-      message: "Paciente excluido com sucesso",
+      message: "Paciente arquivado com sucesso",
       error: false,
       statusCode: 200,
     });
   } catch (error) {
-    console.log(`[Deletar Paciente] - Error: ${error}`);
+    console.log(`[Arquivar Paciente] - Error: ${error}`);
     next(error);
   }
 }
