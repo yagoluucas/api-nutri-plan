@@ -31,11 +31,15 @@ const pacienteSchema = new Schema<IPacienteDB, PacienteModel, IPacienteMethods>(
     observacoes: { type: String },
     qtdPlanos: { type: Number, min: 0, default: 0 },
     primeiroPlanoEntregue: { type: Boolean, default: false },
+    archivedAt: { type: Date },
+    purgeAt: { type: Date },
   },
   {
     timestamps: true,
   },
 );
+
+pacienteSchema.index({ purgeAt: 1 }, { expireAfterSeconds: 0 });
 
 function protegerCampoPaciente(
   paciente: mongoose.HydratedDocument<IPacienteDB, IPacienteMethods>,
