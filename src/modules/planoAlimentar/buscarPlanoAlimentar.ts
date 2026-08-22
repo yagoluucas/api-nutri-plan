@@ -41,6 +41,7 @@ export async function buscarPlanosAlimentares(req: Request, next: NextFunction) 
 
     const planosAlimentares = await PlanoAlimentar.find({
       idPaciente: params.data.idPaciente,
+      archivedAt: { $exists: false },
     }).sort({ createdAt: -1 });
 
     return IRetornoPlanosAlimentaresSchema.parse({
