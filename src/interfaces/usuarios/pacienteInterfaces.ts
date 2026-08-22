@@ -132,6 +132,8 @@ export const IPacienteDBSchema = IPacienteSchema.omit({
   sexo: z.string(),
   observacoes: z.string().optional(),
   qtdPlanos: z.number().int().min(0).optional(),
+  archivedAt: z.date().optional(),
+  purgeAt: z.date().optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
 });
