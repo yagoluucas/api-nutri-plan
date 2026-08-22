@@ -56,6 +56,7 @@ async function atualizarPlanoAlimentar(req: Request, next: NextFunction) {
     const plano = await PlanoAlimentar.findOne({
       _id: params.data.idPlano,
       idPaciente: params.data.idPaciente,
+      archivedAt: { $exists: false },
     });
 
     if (!plano) {
