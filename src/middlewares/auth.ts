@@ -76,7 +76,10 @@ async function authMiddleware(
       return;
     }
 
-    const userExists = await Nutricionista.exists({ _id: parsedToken.id });
+    const userExists = await Nutricionista.exists({
+      _id: parsedToken.id,
+      archivedAt: { $exists: false },
+    });
 
     if (!userExists) {
       next(authenticationError());
