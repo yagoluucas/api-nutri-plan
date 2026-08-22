@@ -1,5 +1,6 @@
 import { NextFunction, Request, Router } from "express";
 import mongoose from "mongoose";
+import { addDays, archiveRetention } from "../../config/archiveRetention.js";
 import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import { getIdNutricionistaAutenticado } from "./nutricionistaHelpers.js";
 import Nutricionista from "../../database/nutricionista.js";
@@ -8,7 +9,7 @@ import { IRetornoApiSchema } from "../../interfaces/generalInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
 import Paciente from "../../database/paciente.js";
 import Sessao from "../../database/sessao.js";
-import { deletarPlanosAlimentares } from "../planoAlimentar/deletarPlanoAlimentar.js";
+import { arquivarPlanosAlimentares } from "../planoAlimentar/deletarPlanoAlimentar.js";
 
 async function deletarNutricionista(req: Request, next: NextFunction) {
   try {
@@ -24,12 +25,25 @@ async function deletarNutricionista(req: Request, next: NextFunction) {
 
     try {
       const resultadoTransacao = await session.withTransaction(async () => {
-        const nutricionistaDeletado = await Nutricionista.findOneAndDelete(
-          { _id: idNutricionista },
-          { session },
+        const archivedAt = new Date();
+        const nutricionistaArquivado = await Nutricionista.findOneAndUpdate(
+          {
+            _id: idNutricionista,
+            archivedAt: { $exists: false },
+          },
+          {
+            $set: {
+              archivedAt,
+              purgeAt: addDays(
+                archivedAt,
+                archiveRetention.nutricionistaDays,
+              ),
+            },
+          },
+          { session, new: true },
         );
 
-        if (!nutricionistaDeletado) {
+        if (!nutricionistaArquivado) {
           throw new Error("Nutricionista nao encontrado", {
             cause: {
               cause: "Not Found",
@@ -40,7 +54,10 @@ async function deletarNutricionista(req: Request, next: NextFunction) {
         }
 
         const pacientes = await Paciente.find(
-          { idNutricionista },
+          {
+            idNutricionista,
+            archivedAt: { $exists: false },
+          },
           { _id: 1 },
           { session },
         ).lean();
@@ -49,12 +66,23 @@ async function deletarNutricionista(req: Request, next: NextFunction) {
           String(paciente._id),
         );
 
-        await deletarPlanosAlimentares(idsPacientes, session);
+        if (idsPacientes.length > 0) {
+          await Paciente.updateMany(
+            { _id: { $in: idsPacientes } },
+            {
+              $set: {
+                archivedAt,
+                purgeAt: addDays(
+                  archivedAt,
+                  archiveRetention.pacienteDays,
+                ),
+              },
+            },
+            { session },
+          );
 
-        const pacientesDeletados = await Paciente.deleteMany(
-          { idNutricionista },
-          { session },
-        );
+          await arquivarPlanosAlimentares(idsPacientes, archivedAt, session);
+        }
 
         await Sessao.deleteMany(
           { nutricionistaId: idNutricionista },
@@ -62,12 +90,12 @@ async function deletarNutricionista(req: Request, next: NextFunction) {
         );
 
         return {
-          quantidadePacientesDeletados: pacientesDeletados.deletedCount,
+          quantidadePacientesArquivados: idsPacientes.length,
         };
       });
 
       if (!resultadoTransacao) {
-        throw new Error("Erro ao deletar nutricionista", {
+        throw new Error("Erro ao arquivar nutricionista", {
           cause: {
             cause: "Internal Server Error",
             internalCause: "Unexpected Error",
@@ -76,13 +104,13 @@ async function deletarNutricionista(req: Request, next: NextFunction) {
         });
       }
 
-      const mensagemQuantidadePacientesDeletados =
-        resultadoTransacao.quantidadePacientesDeletados === 1
+      const mensagemQuantidadePacientesArquivados =
+        resultadoTransacao.quantidadePacientesArquivados === 1
           ? "paciente"
           : "pacientes";
 
       return IRetornoApiSchema.parse({
-        message: `Nutricionista e ${resultadoTransacao.quantidadePacientesDeletados} ${mensagemQuantidadePacientesDeletados} deletados`,
+        message: `Nutricionista e ${resultadoTransacao.quantidadePacientesArquivados} ${mensagemQuantidadePacientesArquivados} arquivados`,
         error: false,
         statusCode: 200,
       });
