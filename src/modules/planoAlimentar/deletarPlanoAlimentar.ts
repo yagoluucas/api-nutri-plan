@@ -7,7 +7,6 @@ import PlanoAlimentar from "../../database/planoAlimentar.js";
 import { IRetornoApiSchema } from "../../interfaces/generalInterfaces.js";
 import { IPlanoAlimentarParamsSchema } from "../../interfaces/planoAlimentar/planoAlimentarInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
-import { logger } from "../../utils/logger.js";
 import {
   buscarPacienteAutorizado,
   getIdNutricionistaAutenticado,
@@ -103,7 +102,6 @@ async function deletarPlanoAlimentar(req: Request, next: NextFunction) {
       statusCode: 200,
     });
   } catch (error) {
-    logger.error("diet_plan_archive_failed", error);
     next(error);
   }
 }
