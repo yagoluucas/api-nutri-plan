@@ -6,7 +6,6 @@ import {
   ICadastrarPacienteRequestSchema,
   IRetornoPacienteSchema,
 } from "../../interfaces/usuarios/pacienteInterfaces.js";
-import { logger } from "../../utils/logger.js";
 import { formatDateOnly } from "../../utils/utils.js";
 import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
 
@@ -65,7 +64,6 @@ async function cadastrarPaciente(
       },
     });
   } catch (error) {
-    logger.error("patient_create_failed", error);
     next(error);
   }
 }
