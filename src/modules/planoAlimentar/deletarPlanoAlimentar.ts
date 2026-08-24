@@ -102,7 +102,6 @@ async function deletarPlanoAlimentar(req: Request, next: NextFunction) {
       statusCode: 200,
     });
   } catch (error) {
-    console.log(`[Arquivar Plano Alimentar] - Error: ${error}`);
     next(error);
   }
 }

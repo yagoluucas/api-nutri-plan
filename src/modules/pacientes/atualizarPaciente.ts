@@ -105,7 +105,6 @@ async function atualizarPaciente(req: Request, next: NextFunction) {
       },
     });
   } catch (error) {
-    console.log(`[Atualizar Paciente] - Error: ${error}`);
     next(error);
   }
 }

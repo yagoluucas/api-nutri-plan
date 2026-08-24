@@ -88,7 +88,6 @@ async function atualizarPlanoAlimentar(req: Request, next: NextFunction) {
       planoAlimentar: normalizarPlanoAlimentar(plano),
     });
   } catch (error) {
-    console.log(`[Atualizar Plano Alimentar] - Error: ${error}`);
     next(error);
   }
 }

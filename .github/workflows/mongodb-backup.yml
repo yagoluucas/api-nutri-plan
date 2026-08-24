@@ -1,0 +1,67 @@
+name: MongoDB Backup
+
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub Actions usa UTC. 06:15 UTC = 03:15 em Sao Paulo (UTC-3).
+    - cron: "15 6 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mongodb-production-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Backup and restore-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MONGO_TOOLS_IMAGE: mongo:8.0.29-noble
+      MONGODB_BACKUP_URI: ${{ secrets.MONGODB_BACKUP_URI }}
+      MONGODB_BACKUP_DATABASE: ${{ secrets.MONGODB_BACKUP_DATABASE }}
+      BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+      BACKUP_OUTPUT_DIR: .backups
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate backup configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          missing=0
+          for variable in \
+            MONGODB_BACKUP_URI \
+            MONGODB_BACKUP_DATABASE \
+            BACKUP_ENCRYPTION_PASSPHRASE
+          do
+            if [[ -z "${!variable:-}" ]]; then
+              echo "Missing required GitHub Actions secret: ${variable}" >&2
+              missing=1
+            fi
+          done
+
+          if [[ "$missing" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Create, verify and encrypt backup
+        shell: bash
+        run: bash scripts/backup/create-mongodb-backup.sh
+
+      - name: Upload encrypted backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: mongodb-backup-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .backups/*.gpg
+            .backups/*.sha256
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+          include-hidden-files: true

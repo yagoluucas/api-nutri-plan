@@ -53,7 +53,6 @@ export async function buscarPlanosAlimentares(req: Request, next: NextFunction) 
         .map(normalizarPlanoAlimentar),
     });
   } catch (error) {
-    console.log(`[Buscar Planos Alimentares] - Error: ${error}`);
     next(error);
   }
 }

@@ -68,7 +68,6 @@ async function buscarPacientes(req: Request, next: NextFunction) {
       pacientes,
     });
   } catch (error) {
-    console.log(`[Recuperar Pacientes] - Error: ${error}`);
     next(error);
   }
 }
@@ -139,7 +138,6 @@ async function buscarPaciente(req: Request, next: NextFunction) {
       },
     });
   } catch (error) {
-    console.log(`[Recuperar Paciente] - Error: ${error}`);
     next(error);
   }
 }
