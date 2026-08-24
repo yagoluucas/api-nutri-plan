@@ -6,6 +6,7 @@ import {
   IRetornoPlanosAlimentaresSchema,
 } from "../../interfaces/planoAlimentar/planoAlimentarInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
+import { logger } from "../../utils/logger.js";
 import {
   buscarPacienteAutorizado,
   getIdNutricionistaAutenticado,
@@ -53,7 +54,7 @@ export async function buscarPlanosAlimentares(req: Request, next: NextFunction) 
         .map(normalizarPlanoAlimentar),
     });
   } catch (error) {
-    console.log(`[Buscar Planos Alimentares] - Error: ${error}`);
+    logger.error("diet_plans_fetch_failed", error);
     next(error);
   }
 }
