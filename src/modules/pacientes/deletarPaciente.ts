@@ -9,7 +9,6 @@ import {
   IRetornoApiSchema,
 } from "../../interfaces/generalInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
-import { logger } from "../../utils/logger.js";
 import { arquivarPlanosAlimentares } from "../planoAlimentar/deletarPlanoAlimentar.js";
 import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
 
@@ -76,7 +75,6 @@ async function deletarPaciente(req: Request, next: NextFunction) {
       statusCode: 200,
     });
   } catch (error) {
-    logger.error("patient_archive_failed", error);
     next(error);
   }
 }
