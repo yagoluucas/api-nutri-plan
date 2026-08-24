@@ -8,7 +8,6 @@ import {
   IRetornoPlanoAlimentarSchema,
 } from "../../interfaces/planoAlimentar/planoAlimentarInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
-import { logger } from "../../utils/logger.js";
 import {
   buscarPacienteAutorizado,
   getIdNutricionistaAutenticado,
@@ -89,7 +88,6 @@ async function atualizarPlanoAlimentar(req: Request, next: NextFunction) {
       planoAlimentar: normalizarPlanoAlimentar(plano),
     });
   } catch (error) {
-    logger.error("diet_plan_update_failed", error);
     next(error);
   }
 }
