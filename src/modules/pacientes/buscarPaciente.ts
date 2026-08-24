@@ -8,7 +8,6 @@ import {
   IRetornoPacientesSchema,
 } from "../../interfaces/usuarios/pacienteInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
-import { logger } from "../../utils/logger.js";
 import { formatDateOnly } from "../../utils/utils.js";
 import { getIdNutricionistaAutenticado } from "./pacienteHelpers.js";
 
@@ -69,7 +68,6 @@ async function buscarPacientes(req: Request, next: NextFunction) {
       pacientes,
     });
   } catch (error) {
-    logger.error("patients_fetch_failed", error);
     next(error);
   }
 }
@@ -140,7 +138,6 @@ async function buscarPaciente(req: Request, next: NextFunction) {
       },
     });
   } catch (error) {
-    logger.error("patient_fetch_failed", error);
     next(error);
   }
 }
