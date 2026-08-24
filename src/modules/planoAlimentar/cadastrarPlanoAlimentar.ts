@@ -8,6 +8,7 @@ import {
   IRetornoPlanoAlimentarSchema,
 } from "../../interfaces/planoAlimentar/planoAlimentarInterfaces.js";
 import { authMiddleware } from "../../middlewares/auth.js";
+import { logger } from "../../utils/logger.js";
 import {
   buscarPacienteAutorizado,
   getIdNutricionistaAutenticado,
@@ -77,7 +78,7 @@ async function cadastrarPlanoAlimentar(req: Request, next: NextFunction) {
       planoAlimentar: normalizarPlanoAlimentar(planoCriado),
     });
   } catch (error) {
-    console.log(`[Cadastrar Plano Alimentar] - Error: ${error}`);
+    logger.error("diet_plan_create_failed", error);
     next(error);
   }
 }
