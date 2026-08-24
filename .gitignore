@@ -7,6 +7,7 @@ dist
 bruno.json
 *.bru
 DietPlan-API
+.backups/
 
 # Arquivos de Organização Pessoal
 TODO.md
