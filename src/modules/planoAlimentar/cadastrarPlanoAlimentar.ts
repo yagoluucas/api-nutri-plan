@@ -77,7 +77,6 @@ async function cadastrarPlanoAlimentar(req: Request, next: NextFunction) {
       planoAlimentar: normalizarPlanoAlimentar(planoCriado),
     });
   } catch (error) {
-    console.log(`[Cadastrar Plano Alimentar] - Error: ${error}`);
     next(error);
   }
 }

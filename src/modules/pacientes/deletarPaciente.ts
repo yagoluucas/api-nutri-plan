@@ -75,7 +75,6 @@ async function deletarPaciente(req: Request, next: NextFunction) {
       statusCode: 200,
     });
   } catch (error) {
-    console.log(`[Arquivar Paciente] - Error: ${error}`);
     next(error);
   }
 }

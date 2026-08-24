@@ -64,7 +64,6 @@ async function cadastrarPaciente(
       },
     });
   } catch (error) {
-    console.log(`[Cadastrar Paciente] - Error: ${error}`);
     next(error);
   }
 }
