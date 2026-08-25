@@ -222,4 +222,5 @@ export const IRetornoPacientesSchema = IRetornoApiSchema.extend({
   pacientes: z.array(IPacienteListaItemSchema),
 });
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- O segundo generico do Model representa query helpers inexistentes.
 export type PacienteModel = Model<IPacienteDB, {}, IPacienteMethods>;

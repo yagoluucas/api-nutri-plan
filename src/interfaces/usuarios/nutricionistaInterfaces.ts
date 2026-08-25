@@ -95,6 +95,7 @@ interface INutricionistaMethods {
   getCrnDescriptografado(): string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- O segundo generico do Model representa query helpers inexistentes.
 type NutricionistaModel = Model<INutricionistaDB, {}, INutricionistaMethods>;
 
 export {

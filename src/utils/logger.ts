@@ -59,7 +59,7 @@ const SENSITIVE_KEYS = new Set([
   "imagemcapa",
 ]);
 
-const TOKEN_PATTERN = /\bBearer\s+[A-Za-z0-9._~+\/-]+=*/gi;
+const TOKEN_PATTERN = /\bBearer\s+[A-Za-z0-9._~+/-]+=*/gi;
 const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const MONGO_URI_PATTERN = /mongodb(?:\+srv)?:\/\/[^\s"']+/gi;
 const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;

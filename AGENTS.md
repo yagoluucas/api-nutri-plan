@@ -148,6 +148,7 @@ Antes de finalizar qualquer alteração relevante, rode:
 ```bash
 npm install
 npm run build
+npm run lint
 ```
 
 Durante desenvolvimento local, use:
@@ -162,7 +163,7 @@ Para validar o build gerado, use:
 npm run start
 ```
 
-Este projeto ainda não possui script de lint ou testes automatizados no `package.json`. Não invente comandos inexistentes.
+Este projeto possui script de lint, mas ainda não possui testes automatizados no `package.json`. Não invente comandos inexistentes.
 
 Se adicionar lint ou testes no futuro, também atualize este arquivo.
 
