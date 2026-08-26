@@ -8,15 +8,38 @@ Back-end do Nutri Plan desenvolvido com Node.js, Express, TypeScript, Mongoose, 
 
 Links de confirmacao expiram em 30 minutos e podem receber reenvio por `POST /auth/register/resend`. Para permitir um novo link, a pendencia criptografada e mantida por ate 24 horas e depois removida automaticamente pelo MongoDB. Dados pessoais ficam protegidos com AES-256-GCM, a senha permanece somente como hash bcrypt, e tokens e IPs nao sao armazenados em texto claro.
 
-Configure o envio pelo Gmail com:
+O envio usa a API HTTPS do Resend. Configure:
 
 ```env
 FRONTEND_URL=http://localhost:3000
-EMAIL_USER=seu-email@gmail.com
-EMAIL_APP_PASSWORD=senha-de-app-do-google
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
+RESEND_FROM_NAME=Integrale Nutrição
 ```
 
-`EMAIL_APP_PASSWORD` deve ser uma senha de app exclusiva, gerada em uma conta Google com verificacao em duas etapas. Nunca use nem versione a senha principal da conta.
+`RESEND_API_KEY` e `RESEND_FROM_EMAIL` podem permanecer vazias enquanto o provider nao estiver configurado. A aplicacao inicia normalmente, mas tentativas de envio retornam um erro controlado e nao simulam entrega. O envio real exige um dominio verificado no Resend; nunca versione a API key.
+
+## Cadastro unico de nutricionista
+
+Para criar uma unica conta sem depender de confirmacao por e-mail, configure no ambiente de deploy:
+
+```env
+SINGLE_USER_REGISTRATION_ENABLED=true
+SINGLE_USER_REGISTRATION_SECRET=
+```
+
+Gere o segredo com `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`. Com o modo ativo, envie o mesmo body de cadastro para `POST /auth/register` pelo Postman ou cURL e acrescente o header `X-Registration-Secret`. O segredo deve existir apenas no ambiente do servidor e na chamada administrativa; nunca o coloque no front-end ou no repositorio.
+
+```bash
+curl -X POST https://sua-api.example.com/auth/register \
+  -H "Content-Type: application/json" \
+  -H "X-Registration-Secret: $SINGLE_USER_REGISTRATION_SECRET" \
+  --data '{"nutricionista":{"nome":"Nome","sobrenome":"Sobrenome","email":"pessoa@example.com","dataNascimento":"1990-01-01","crn":"CRN-00000","senha":"Troque#123"}}'
+```
+
+A primeira chamada autorizada cria diretamente o nutricionista e grava uma trava permanente. Depois disso, somente as rotas de cadastro de nutricionista (`/auth/register`, `/auth/register/resend` e `/auth/register/confirm`) ficam indisponiveis. Login, pacientes, alimentos e planos alimentares continuam funcionando normalmente. A resposta de criacao nao inicia uma sessao; valide o acesso usando `POST /auth/login`.
+
+Para reabrir cadastros no futuro, sera necessario desativar a flag e remover administrativamente o marcador da collection `singleUserRegistrationLocks`. Nao existe rota publica para remover essa trava.
 
 ## Bancos de desenvolvimento e producao
 

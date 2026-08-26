@@ -6,6 +6,11 @@ import { conectarAoBancoDeDados } from "../../database/conexaoAoBanco.js";
 import Nutricionista, {
   marcarSenhaHasheadaComoConfiavel,
 } from "../../database/nutricionista.js";
+import SingleUserRegistrationLock from "../../database/singleUserRegistrationLock.js";
+import {
+  obterConfiguracaoCadastroUnico,
+  validarSegredoCadastroUnico,
+} from "../../config/singleUserRegistration.js";
 import {
   IRegistrationData,
   IRegistrationDataSchema,
@@ -13,6 +18,10 @@ import {
   IRegistrationConfirmedResponseSchema,
 } from "../../interfaces/auth/emailConfirmationInterfaces.js";
 import { IErrorCause } from "../../interfaces/errors/erros.js";
+import {
+  ISingleUserRegistrationCreatedResponseSchema,
+  ISingleUserRegistrationLockIdSchema,
+} from "../../interfaces/auth/singleUserRegistrationInterfaces.js";
 import { INutricionista } from "../../interfaces/usuarios/nutricionistaInterfaces.js";
 import { decryptJson, encryptJson } from "../../utils/encryption.js";
 import { logger } from "../../utils/logger.js";
@@ -34,6 +43,16 @@ import {
 const PENDING_REGISTRATION_CONTEXT = "auth:cadastro-pendente:payload";
 const RESEND_COOLDOWN_MS = 60 * 1_000;
 const MAX_EMAIL_SENDS = 3;
+const SINGLE_USER_REGISTRATION_LOCK_ID =
+  ISingleUserRegistrationLockIdSchema.parse("nutricionista-registration");
+
+type CreateSingleUserAtomically = (
+  nutricionista: INutricionista,
+) => Promise<"created" | "closed" | undefined>;
+
+type SingleUserRegistrationOptions = {
+  createAtomically?: CreateSingleUserAtomically;
+};
 
 function getValidConfirmationFilter(now: Date) {
   return {
@@ -128,6 +147,95 @@ function confirmationConflictError() {
   });
 }
 
+function registrationClosedError() {
+  return new Error("Cadastro de nutricionista indisponivel.", {
+    cause: {
+      cause: "Forbidden",
+      statusCode: 403,
+    } as IErrorCause,
+  });
+}
+
+async function isSingleUserRegistrationLocked() {
+  return Boolean(
+    await SingleUserRegistrationLock.exists({
+      _id: SINGLE_USER_REGISTRATION_LOCK_ID,
+    }),
+  );
+}
+
+async function ensureEmailConfirmationRegistrationAvailable() {
+  const configuration = obterConfiguracaoCadastroUnico();
+
+  if (configuration.enabled) {
+    throw registrationClosedError();
+  }
+
+  await conectarAoBancoDeDados();
+
+  if (await isSingleUserRegistrationLocked()) {
+    throw registrationClosedError();
+  }
+}
+
+async function createSingleUserAtomically(
+  nutricionista: INutricionista,
+) {
+  await SingleUserRegistrationLock.init();
+  const session = await mongoose.startSession();
+
+  try {
+    return await session.withTransaction(async () => {
+      await SingleUserRegistrationLock.create(
+        [{ _id: SINGLE_USER_REGISTRATION_LOCK_ID }],
+        { session },
+      );
+
+      const existingUser = await Nutricionista.exists({}).session(session);
+
+      if (existingUser) {
+        await CadastroPendente.deleteMany({}, { session });
+        return "closed" as const;
+      }
+
+      const newUser = new Nutricionista(nutricionista);
+      await newUser.save({ session });
+      await CadastroPendente.deleteMany({}, { session });
+
+      return "created" as const;
+    });
+  } finally {
+    await session.endSession();
+  }
+}
+
+async function createSingleUserRegistration(
+  nutricionista: INutricionista,
+  options: SingleUserRegistrationOptions = {},
+) {
+  try {
+    const result = await (
+      options.createAtomically ?? createSingleUserAtomically
+    )(nutricionista);
+
+    if (result !== "created") {
+      throw registrationClosedError();
+    }
+
+    return ISingleUserRegistrationCreatedResponseSchema.parse({
+      message: "Nutricionista cadastrado com sucesso.",
+      error: false,
+      statusCode: 201,
+    });
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
+      throw registrationClosedError();
+    }
+
+    throw error;
+  }
+}
+
 async function updateDeliveryStatusSafely(
   id: mongoose.Types.ObjectId,
   deliveryStatus: "sent" | "failed",
@@ -142,8 +250,32 @@ async function updateDeliveryStatusSafely(
   }
 }
 
-async function iniciarCadastro(nutricionista: INutricionista, req: Request) {
+async function iniciarCadastro(
+  nutricionista: INutricionista,
+  req: Request,
+  registrationSecret?: string,
+) {
+  const singleUserConfiguration = obterConfiguracaoCadastroUnico();
+
+  if (
+    singleUserConfiguration.enabled &&
+    !validarSegredoCadastroUnico(
+      registrationSecret,
+      singleUserConfiguration.secret,
+    )
+  ) {
+    throw registrationClosedError();
+  }
+
   await conectarAoBancoDeDados();
+
+  if (await isSingleUserRegistrationLocked()) {
+    throw registrationClosedError();
+  }
+
+  if (singleUserConfiguration.enabled) {
+    return createSingleUserRegistration(nutricionista);
+  }
 
   const now = new Date();
   const emailHash = createSearchHash(
@@ -241,7 +373,7 @@ async function iniciarCadastro(nutricionista: INutricionista, req: Request) {
 }
 
 async function reenviarConfirmacao(email: string, req: Request) {
-  await conectarAoBancoDeDados();
+  await ensureEmailConfirmationRegistrationAvailable();
 
   const now = new Date();
   const cooldownLimit = new Date(now.getTime() - RESEND_COOLDOWN_MS);
@@ -299,7 +431,7 @@ async function reenviarConfirmacao(email: string, req: Request) {
 }
 
 async function confirmarCadastro(token: string) {
-  await conectarAoBancoDeDados();
+  await ensureEmailConfirmationRegistrationAvailable();
 
   const session = await mongoose.startSession();
 
@@ -368,4 +500,9 @@ async function confirmarCadastro(token: string) {
   }
 }
 
-export { confirmarCadastro, iniciarCadastro, reenviarConfirmacao };
+export {
+  confirmarCadastro,
+  createSingleUserRegistration,
+  iniciarCadastro,
+  reenviarConfirmacao,
+};
