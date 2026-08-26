@@ -88,7 +88,11 @@ async function register(
   }
 
   try {
-    return await iniciarCadastro(nutricionistSafe.data, req);
+    return await iniciarCadastro(
+      nutricionistSafe.data,
+      req,
+      req.get("X-Registration-Secret"),
+    );
   } catch (error) {
     next(error);
   }

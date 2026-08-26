@@ -4,7 +4,8 @@ import cookieParser from "cookie-parser";
 import express from "express";
 import { corsOptions } from "./config/cors.js";
 import { validarConfiguracaoBancoDeDados } from "./config/database.js";
-import { validarConfiguracaoEmail } from "./config/email.js";
+import { validarFrontendUrl } from "./config/email.js";
+import { obterConfiguracaoCadastroUnico } from "./config/singleUserRegistration.js";
 import { validarConfiguracaoChavesSensiveis } from "./config/secrets.js";
 import { recuperarAlimentosRouter } from "./modules/alimentos/buscarAlimento.js";
 import { authRouter } from "./modules/auth/auth.js";
@@ -31,7 +32,8 @@ import {
 installConsoleRedaction();
 validarConfiguracaoChavesSensiveis();
 validarConfiguracaoBancoDeDados();
-validarConfiguracaoEmail();
+validarFrontendUrl();
+obterConfiguracaoCadastroUnico();
 
 const app = express();
 const port = Number(process.env.PORT) || 5000;

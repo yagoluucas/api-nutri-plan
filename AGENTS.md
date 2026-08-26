@@ -20,7 +20,7 @@ O objetivo principal da API é fornecer autenticação, proteção de rotas, bus
 - Zod
 - bcrypt
 - jsonwebtoken
-- Nodemailer
+- Resend
 - cors
 - dotenv
 - tsx
@@ -149,6 +149,7 @@ Antes de finalizar qualquer alteração relevante, rode:
 npm install
 npm run build
 npm run lint
+npm test
 ```
 
 Durante desenvolvimento local, use:
@@ -163,7 +164,7 @@ Para validar o build gerado, use:
 npm run start
 ```
 
-Este projeto possui script de lint, mas ainda não possui testes automatizados no `package.json`. Não invente comandos inexistentes.
+Este projeto possui scripts de lint e testes automatizados no `package.json`. Não invente comandos inexistentes.
 
 Se adicionar lint ou testes no futuro, também atualize este arquivo.
 
@@ -346,8 +347,11 @@ MONGO_URL
 MONGO_DB_DATABASE_NAME
 JWT_SECRET
 JWT_EXPIRES_IN
-EMAIL_USER
-EMAIL_APP_PASSWORD
+RESEND_API_KEY
+RESEND_FROM_EMAIL
+RESEND_FROM_NAME
+SINGLE_USER_REGISTRATION_ENABLED
+SINGLE_USER_REGISTRATION_SECRET
 JSON_BODY_LIMIT
 CORS_ORIGINS
 CORS_ORIGIN
@@ -357,7 +361,9 @@ CORS_CREDENTIALS
 
 `JWT_SECRET` é obrigatório para gerar e validar tokens.
 
-`EMAIL_USER` e `EMAIL_APP_PASSWORD` sao obrigatorios para enviar confirmacoes de cadastro. `EMAIL_APP_PASSWORD` deve ser uma senha de app do Google e nunca a senha principal da conta.
+`RESEND_API_KEY` e `RESEND_FROM_EMAIL` sao obrigatorios apenas no momento de enviar e-mails. A ausencia dessas variaveis nao deve impedir o backend de iniciar. `RESEND_FROM_NAME` usa `Integrale Nutrição` como valor padrao seguro.
+
+`SINGLE_USER_REGISTRATION_ENABLED` usa `false` como padrao. Quando estiver em `true`, `SINGLE_USER_REGISTRATION_SECRET` deve conter entre 32 e 256 caracteres e nunca pode ser logado ou enviado ao navegador. O modo cria somente uma conta de nutricionista e fecha permanentemente as rotas de cadastro depois da primeira criacao.
 
 `MONGO_DB_CONNECTION_STRING` ou `MONGO_URL` é obrigatório para conectar ao MongoDB.
 

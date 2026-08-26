@@ -39,5 +39,9 @@ services:
         sync: false
       - key: EMAIL_APP_PASSWORD
         sync: false
+      - key: SINGLE_USER_REGISTRATION_ENABLED
+        sync: false
+      - key: SINGLE_USER_REGISTRATION_SECRET
+        sync: false
       - key: REDIS_URL
         sync: false
