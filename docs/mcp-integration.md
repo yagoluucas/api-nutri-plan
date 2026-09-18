@@ -83,13 +83,13 @@ _meta["openai/session"]
 
 Esse valor é um identificador anonimizado da conversa.
 
-O Nutri Plan não deve persistir o valor bruto. Ele será transformado em uma chave derivada:
+O Nutri Plan não deve persistir o valor bruto. Ele será transformado em uma chave derivada usando HMAC-SHA-256 e uma chave secreta dedicada:
 
 ```text
 provider + sessionId
         |
         v
-      SHA-256
+   HMAC-SHA-256
         |
         v
 conversationKey
@@ -379,7 +379,7 @@ A chave principal deve considerar a identidade autenticada do nutricionista. Met
 - Uma referência copiada para outro usuário não concede acesso.
 - O paciente precisa pertencer ao nutricionista autenticado.
 - Nome, e-mail, nascimento, diagnóstico e observações não aparecem em respostas MCP.
-- `openai/session` bruto não é persistido.
+- `openai/session` bruto não é persistido.\n- A correlação de conversa usa HMAC com segredo dedicado; hash simples não é suficiente.
 - Tokens OAuth não aparecem em logs.
 - IDs internos não são retornados ao modelo sem necessidade.
 - Alimento inexistente não é inventado.
