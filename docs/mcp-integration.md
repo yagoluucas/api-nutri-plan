@@ -4,63 +4,228 @@
 
 Adicionar um servidor MCP ao back-end do Nutri Plan para permitir que clientes compatíveis, inicialmente o ChatGPT, utilizem capacidades do sistema sem alterar o fluxo atual do site.
 
-O primeiro caso de uso é permitir que um nutricionista autenticado descreva um plano alimentar em linguagem natural e que o cliente MCP converta esse pedido em chamadas estruturadas para o Nutri Plan.
+O primeiro caso de uso será um **Conversational Diet Builder**: o nutricionista descreve o plano alimentar em linguagem natural, o cliente MCP estrutura a intenção e o Nutri Plan cria apenas um rascunho para revisão profissional.
 
-## Regra principal de segurança
+O objetivo não é permitir que a IA leia prontuários ou tome decisões clínicas de forma autônoma.
 
-A integração MCP não pode alterar o comportamento dos endpoints REST existentes até que esteja validada.
+## Princípios
 
-A produção continua baseada na branch `main`. O desenvolvimento MCP ocorre na branch `feat/mcp-integration` e só poderá ser integrado depois de:
+1. Segurança e privacidade têm prioridade sobre conveniência.
+2. Minimização de dados por padrão.
+3. O modelo não recebe nome, e-mail, data de nascimento, diagnóstico, observações clínicas ou prontuário do paciente sem uma necessidade futura explicitamente aprovada.
+4. A IA propõe; o nutricionista revisa; o Nutri Plan registra.
+5. O MCP não acessa o MongoDB diretamente.
+6. Regras de negócio devem ser reutilizadas por REST e MCP.
+7. O estado de seleção de paciente pertence ao domínio do Nutri Plan, não à sessão de transporte MCP.
+8. Nenhuma alteração MCP será liberada em produção sem testes funcionais e de segurança.
 
-1. build, lint e testes passarem;
-2. endpoints REST existentes permanecerem compatíveis;
-3. ferramentas MCP terem schemas de entrada e saída validados;
-4. autenticação e autorização serem verificadas;
-5. cenários positivos e negativos serem testados no MCP Inspector;
-6. teste controlado no ChatGPT ser concluído.
+## Identidade: quem é o nutricionista?
+
+O ChatGPT identifica o nutricionista por OAuth 2.1 compatível com MCP.
+
+Fluxo conceitual:
+
+```text
+ChatGPT
+   |
+   | OAuth 2.1 + PKCE
+   v
+Nutri Plan Authorization Server
+   |
+   | login/consentimento
+   v
+access token
+   |
+   v
+MCP Nutri Plan
+   |
+   v
+nutricionistaId interno
+```
+
+O token MCP será diferente do JWT atual usado pelo site. Ambos devem convergir para uma identidade interna confiável de nutricionista.
+
+O MCP deve validar em toda chamada:
+- issuer;
+- audience/resource;
+- expiração;
+- scopes;
+- identidade do nutricionista.
+
+## Identidade: como o paciente é escolhido?
+
+O ChatGPT **não pesquisa pacientes por nome**.
+
+A seleção do paciente ocorre dentro do Nutri Plan.
+
+### Fluxo principal
+
+1. O nutricionista conecta sua conta do Nutri Plan ao ChatGPT via OAuth.
+2. No ChatGPT, ele solicita iniciar um plano alimentar.
+3. A ferramenta MCP cria uma solicitação temporária de contexto.
+4. O Nutri Plan retorna um link seguro de seleção.
+5. O nutricionista abre o link no Nutri Plan.
+6. Se necessário, autentica-se no site.
+7. O Nutri Plan verifica que o usuário do site é o mesmo nutricionista que iniciou a solicitação MCP.
+8. O nutricionista escolhe o paciente dentro do Nutri Plan.
+9. O backend associa temporariamente aquela conversa MCP ao paciente selecionado.
+10. O ChatGPT passa a criar e atualizar somente o rascunho daquele contexto.
+
+O nome e o ID interno do paciente não precisam ser expostos ao modelo.
+
+## Correlação com a conversa do ChatGPT
+
+O ChatGPT fornece em chamadas de ferramenta:
+
+```text
+_meta["openai/session"]
+```
+
+Esse valor é um identificador anonimizado da conversa.
+
+O Nutri Plan não deve persistir o valor bruto. Ele será transformado em uma chave derivada:
+
+```text
+provider + sessionId
+        |
+        v
+      SHA-256
+        |
+        v
+conversationKey
+```
+
+O vínculo efetivo será semelhante a:
+
+```text
+nutricionistaId
++
+conversationKey
+        |
+        v
+patientId interno
+```
+
+O `openai/session` é uma otimização específica do ChatGPT. A abstração de domínio deve permitir no futuro outros clientes MCP com outra forma segura de correlação.
+
+## DietContext
+
+O `DietContext` representa um vínculo temporário entre:
+- nutricionista autenticado;
+- conversa MCP;
+- paciente escolhido no Nutri Plan;
+- finalidade permitida.
+
+Finalidade inicial única:
+
+```text
+diet-plan-draft
+```
+
+Estados:
+
+```text
+pending
+active
+revoked
+```
+
+### Armazenamento
+
+O `DietContext` deve ser armazenado no Redis, não permanentemente no MongoDB.
+
+Motivos:
+- contexto efêmero;
+- expiração automática;
+- revogação simples;
+- menor retenção de dados;
+- compatibilidade com múltiplas instâncias da API;
+- baixo acoplamento com a persistência clínica principal.
+
+TTL inicial sugerido: 30 minutos, configurável e sujeito a revisão durante os testes de UX.
+
+Nenhum dado clínico deve ser armazenado no contexto.
+
+## Defesa contra uso cruzado
+
+Conhecer uma referência de contexto não concede acesso.
+
+Toda operação deve validar simultaneamente:
+
+```text
+token OAuth válido
++
+nutricionistaId do token
++
+conversationKey
++
+DietContext ativo
++
+paciente pertencente ao nutricionista
+```
+
+Se qualquer elemento divergir, a operação deve falhar.
+
+Isso deve ser testado explicitamente com duas contas e duas conversas.
 
 ## Arquitetura proposta
 
 ```text
-ChatGPT / cliente MCP
-        |
-        | Streamable HTTP
-        v
-      /mcp
-        |
-        v
- Ferramentas MCP
-        |
-        v
- Serviços internos
-   |          |
-   v          v
-Pacientes   Alimentos
+ChatGPT
+   |
+   | OAuth + chamadas MCP
+   v
+/mcp
    |
    v
-Plano alimentar
+MCP Application Layer
+   |
+   +--> DietContext Service --> Redis
+   |
+   +--> Food Resolution Service
+   |
+   +--> Diet Draft Service
+   |
+   v
+Domain/Application Services
    |
    v
 MongoDB
 ```
 
-O MCP não deve acessar o MongoDB diretamente. As ferramentas devem reutilizar regras internas da aplicação.
+O front-end continua utilizando as rotas REST atuais.
 
 ## Ferramentas do MVP
 
-### find_patient
+### start_diet_context
 
-Objetivo: localizar um paciente pertencente ao nutricionista autenticado.
+Ação autenticada.
 
-Retorno mínimo:
-- referência interna do paciente;
-- nome de exibição mínimo necessário para desambiguação.
+Cria uma solicitação temporária para o nutricionista selecionar o paciente no Nutri Plan.
 
-Não retornar prontuário, observações clínicas, e-mail, data de nascimento ou outros dados sem necessidade explícita.
+Não recebe nome do paciente.
+
+Retorna apenas as informações necessárias para abrir a seleção no Nutri Plan.
+
+### get_diet_context_status
+
+Somente leitura.
+
+Informa se a conversa já possui contexto ativo.
+
+Não retorna nome, e-mail, ID interno ou dados clínicos do paciente.
+
+Exemplo conceitual:
+
+```json
+{
+  "status": "active"
+}
+```
 
 ### resolve_foods
 
-Objetivo: resolver nomes informados pelo usuário para alimentos existentes no banco do Nutri Plan.
+Resolve nomes informados pelo nutricionista contra a base oficial de alimentos do Nutri Plan.
 
 Entrada conceitual:
 
@@ -70,111 +235,164 @@ Entrada conceitual:
 }
 ```
 
-A ferramenta deve retornar candidatos reais do banco e suas medidas disponíveis.
+Retorna apenas candidatos relevantes e medidas necessárias para montar o plano.
 
-### create_diet_plan
+### create_diet_plan_draft
 
-Objetivo: criar um plano alimentar para um paciente autorizado.
+Cria ou substitui o rascunho de plano do contexto ativo.
 
-O cliente pode escolher alimento, quantidade e medida, mas o servidor deve validar o código do alimento e reconstruir a medida selecionada a partir dos dados oficiais do banco antes de persistir.
+O cliente pode indicar alimento, quantidade e medida, mas o servidor valida o alimento e reconstrói a medida usando os dados oficiais do banco.
 
-O MCP nunca deve confiar em valores arbitrários de `total`, `unidadeMedida` ou `tipoMedida` enviados pelo cliente.
+O MCP nunca deve confiar em valores arbitrários de:
+- total;
+- unidadeMedida;
+- tipoMedida.
 
-## Autenticação
+A ferramenta não publica um plano definitivo.
+
+### update_diet_plan_draft
+
+Atualiza o rascunho associado ao contexto ativo.
+
+### revoke_diet_context
+
+Encerra explicitamente o vínculo da conversa com o paciente.
+
+## Revisão e publicação do plano
+
+O fluxo inicial deve ser:
+
+```text
+ChatGPT
+   |
+   v
+rascunho estruturado
+   |
+   v
+Nutri Plan
+   |
+   v
+Revisão pelo nutricionista
+   |
+   v
+Aprovar e salvar
+```
+
+O rascunho gerado por IA não será tratado automaticamente como plano final entregue ao paciente.
+
+## Autenticação existente
 
 O site continua usando o mecanismo JWT/sessão atual.
 
-A integração MCP terá uma camada de autorização própria compatível com o fluxo de autorização MCP. Ambos os caminhos devem terminar em uma identidade interna de nutricionista confiável.
+Não substituir ou modificar o login atual durante as primeiras fases.
 
 ```text
-Site -> sessão/JWT atual ----┐
-                            +-> nutricionistaId -> serviços internos
-MCP  -> autorização MCP ----┘
+Site -> JWT/sessão atual ------┐
+                              +-> nutricionistaId -> serviços internos
+MCP  -> OAuth 2.1 ------------┘
 ```
-
-Não substituir ou modificar o login atual durante as primeiras fases.
 
 ## Rate limit
 
-O rate limit MCP não deve depender somente de IP porque diferentes usuários podem chegar por infraestrutura compartilhada do cliente MCP.
+O rate limit MCP não deve depender somente de IP.
 
-O plano é aplicar limites por identidade autenticada do nutricionista, mantendo proteção adicional por IP quando apropriado.
+A chave principal deve considerar a identidade autenticada do nutricionista. Metadados anonimizados do cliente podem ser usados como camada adicional quando apropriado.
 
 ## Fases
 
 ### Fase 0 — isolamento e documentação
 
 - branch `feat/mcp-integration`;
-- draft PR para executar CI;
-- nenhuma alteração de runtime.
+- draft PR;
+- nenhuma mudança na produção.
 
-### Fase 1 — separar regra de criação de plano
+### Fase 1 — fundação segura do contexto
 
-Extrair a regra de criação do plano alimentar para uma função interna reutilizável.
+- schemas do `DietContext`;
+- geração de referências opacas;
+- hash de identificadores externos de conversa;
+- testes unitários;
+- definição do armazenamento Redis e TTL.
 
-A rota REST atual deve continuar aceitando exatamente:
+### Fase 2 — separar regras internas
 
-```http
-POST /pacientes/:idPaciente/planos-alimentares
-```
+- extrair regras reutilizáveis de criação de plano;
+- preservar exatamente o contrato REST existente;
+- adicionar testes de regressão.
 
-com o mesmo contrato e resposta atuais.
-
-### Fase 2 — camada MCP mínima
+### Fase 3 — transporte MCP mínimo
 
 - adicionar SDK MCP;
-- expor endpoint `/mcp`;
-- registrar inicialmente ferramenta sem acesso a dados sensíveis para validar transporte.
+- endpoint `/mcp`;
+- feature flag;
+- ferramenta de diagnóstico sem dados de usuário;
+- validar transporte no MCP Inspector.
 
-### Fase 3 — resolução de alimentos
+### Fase 4 — OAuth
+
+- OAuth 2.1;
+- PKCE S256;
+- protected resource metadata;
+- scopes mínimos;
+- validação de issuer/audience/resource;
+- revogação.
+
+### Fase 5 — DietContext
+
+- solicitação de contexto;
+- página segura de seleção no Nutri Plan;
+- persistência temporária no Redis;
+- vínculo com conversa;
+- expiração e revogação.
+
+### Fase 6 — alimentos
 
 - `resolve_foods`;
-- validar códigos e medidas usando dados do banco;
-- adicionar testes de ambiguidades e alimentos inexistentes.
+- validação de códigos;
+- validação de medidas;
+- testes de ambiguidades.
 
-### Fase 4 — pacientes
+### Fase 7 — rascunho
 
-- `find_patient`;
-- retorno mínimo;
-- verificar sempre propriedade do paciente pelo nutricionista autenticado.
+- `create_diet_plan_draft`;
+- `update_diet_plan_draft`;
+- revisão antes de publicação;
+- testes de integridade.
 
-### Fase 5 — criação de plano
-
-- `create_diet_plan`;
-- reutilizar serviço interno;
-- validar alimento e medida no servidor;
-- impedir acesso cruzado entre nutricionistas.
-
-### Fase 6 — autorização MCP
-
-- fluxo de autorização compatível com MCP;
-- scopes mínimos;
-- revogação;
-- rate limit por identidade.
-
-### Fase 7 — testes externos
+### Fase 8 — testes externos
 
 - MCP Inspector;
 - ChatGPT em modo de desenvolvedor;
-- cenários válidos, inválidos e tentativas de acesso indevido.
+- testes positivos;
+- testes negativos;
+- testes de autorização cruzada;
+- testes de logs;
+- testes de expiração/revogação.
 
-## Cenários de teste obrigatórios
+## Cenários de segurança obrigatórios
 
-- API atual continua criando plano normalmente.
-- API atual continua listando e atualizando planos.
-- Requisição MCP sem autenticação não acessa dados privados.
-- Nutricionista A não localiza nem cria plano para paciente do nutricionista B.
+- MCP sem OAuth não acessa nenhuma ferramenta privada.
+- Token de nutricionista A não acessa contexto de nutricionista B.
+- Conversa A não reutiliza contexto da conversa B.
+- Um contexto expirado não pode criar ou atualizar rascunhos.
+- Um contexto revogado não pode ser reutilizado.
+- Uma referência copiada para outro usuário não concede acesso.
+- O paciente precisa pertencer ao nutricionista autenticado.
+- Nome, e-mail, nascimento, diagnóstico e observações não aparecem em respostas MCP.
+- `openai/session` bruto não é persistido.
+- Tokens OAuth não aparecem em logs.
+- IDs internos não são retornados ao modelo sem necessidade.
 - Alimento inexistente não é inventado.
 - Medida inexistente não é aceita.
 - Quantidade zero ou negativa é rejeitada.
 - Horário inválido é rejeitado.
 - Plano sem refeições é rejeitado.
-- Falha parcial não cria plano inconsistente.
-- Nenhum token ou dado clínico aparece em logs.
-- Rate limit de um usuário não deve bloquear outro usuário autenticado indevidamente.
+- Falha parcial não cria plano definitivo inconsistente.
+- Rate limit de um usuário não bloqueia outro usuário autenticado indevidamente.
+- API REST atual continua funcionando sem regressão.
 
 ## Estratégia de merge
 
 Nenhuma implementação MCP será enviada diretamente para `main`.
 
-O draft PR permanecerá aberto durante o desenvolvimento. Cada etapa deve ser pequena e revisável. O merge só será considerado quando a integração estiver funcional e os testes do fluxo atual e do MCP estiverem passando.
+O draft PR permanecerá aberto durante o desenvolvimento. Cada fase deve ser pequena, revisável e testável. O merge só será considerado quando os fluxos atuais e MCP estiverem funcionais, os testes de segurança estiverem passando e a exposição de dados tiver sido revisada.
