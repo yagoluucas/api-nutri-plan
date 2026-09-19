@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "lint": "eslint src tests",
-    "test": "node --import tsx --test tests/emailService.test.ts tests/singleUserRegistration.test.ts",
+    "test": "node --import tsx --test tests/emailService.test.ts tests/singleUserRegistration.test.ts tests/mcpDietContext.test.ts",
     "start": "node dist/server.js",
     "db:init:dev": "tsx src/scripts/initializeDevelopmentDatabase.ts",
     "migrate:encrypt-diet-plans": "tsx src/scripts/migrateEncryptDietPlans.ts"
