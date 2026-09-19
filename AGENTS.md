@@ -498,3 +498,248 @@ Rotas esperadas:
 ```txt
 GET /alimentos?foodCode=<codigo>
 GET /alimentos/autocomplete?foodName=<nome>
+```
+
+Regras:
+
+- Usar `authMiddleware` nas rotas de recuperação de alimentos.
+- Validar query params.
+- Limitar quantidade de resultados no autocomplete.
+- Não retornar dados além do necessário no autocomplete.
+- Não permitir consulta ao banco sem usuário autenticado.
+- Evitar regex insegura montada diretamente com entrada do usuário.
+- Não transformar busca de alimentos em rota pública.
+
+## Padrões para cadastro de refeições e plano alimentar
+
+Arquivos relevantes:
+
+```txt
+src/modules/refeicoes/cadastrarRefeicao.ts
+src/modules/planoAlimentar/cadastrarPlano.ts
+```
+
+Essas rotas devem permanecer protegidas.
+
+Ao evoluir esses endpoints:
+
+- Validar body com Zod.
+- Usar usuário autenticado de `req.user` quando necessário.
+- Não confiar em `idUser` vindo do body para autorização.
+- Não permitir que um usuário crie ou altere dados de outro usuário sem regra explícita.
+- Separar regra de negócio de resposta HTTP quando o módulo crescer.
+
+## Senhas
+
+Senhas devem ser armazenadas apenas com hash seguro.
+
+O projeto usa bcrypt.
+
+Não reduzir `saltRounds` sem justificativa forte.
+
+Não retornar `senha` em resposta.
+
+Não selecionar `senha` em consultas comuns.
+
+Use `.select("+senha")` apenas no login, onde a comparação é necessária.
+
+## JWT
+
+Tokens devem ser assinados com `JWT_SECRET`.
+
+Não usar segredo fixo no código.
+
+Não usar payload maior que o necessário.
+
+Payload atual esperado:
+
+```txt
+{ id: string }
+```
+
+Não incluir senha, e-mail, CRN ou dados sensíveis no payload sem necessidade real.
+
+Configure expiração de token.
+
+Não logar token gerado ou token recebido.
+
+## TypeScript e padrão de imports
+
+O projeto usa `module` e `moduleResolution` como `NodeNext`.
+
+Em imports relativos TypeScript que serão emitidos para JavaScript, preserve extensão `.js` quando esse já for o padrão do projeto.
+
+Exemplo:
+
+```ts
+import { authMiddleware } from '../../middlewares/auth.js';
+```
+
+Não trocar indiscriminadamente para imports sem extensão.
+
+Não alterar `tsconfig.json` sem necessidade.
+
+O projeto está com `strict: true`; mantenha compatibilidade com esse modo.
+
+## Logs
+
+Logs devem ajudar no diagnóstico sem expor dados sensíveis.
+
+Pode registrar contexto do módulo, por exemplo:
+
+```txt
+[Auth Login] - Error
+[AuthMiddleware] - Error
+[Buscar Alimento AutoComplete] - Error
+```
+
+Não logar:
+
+- JWT
+- senha
+- hash de senha
+- string de conexão
+- payload completo de login
+- headers completos
+- dados sensíveis do usuário
+
+## Healthcheck
+
+A API possui endpoint de healthcheck em:
+
+```txt
+GET /health
+```
+
+Mantenha esse endpoint simples e sem autenticação.
+
+Não incluir secrets, status detalhado do banco ou informações sensíveis no healthcheck público.
+
+## O que não fazer
+
+Não ler `node_modules`.
+
+Não adicionar dependência sem necessidade.
+
+Não criar rota protegida sem `authMiddleware`.
+
+Não confiar em `idUser` vindo do body para autorização.
+
+Não retornar senha ou hash.
+
+Não logar token ou secrets.
+
+Não expor stack trace em resposta.
+
+Não abrir CORS com `*` em produção sem análise.
+
+Não remover validações Zod existentes.
+
+Não trocar contratos de API sem avaliar impacto no front-end.
+
+Não mover arquivos em refatoração ampla sem necessidade.
+
+Não alterar arquitetura de autenticação sem avaliar front-end, CORS, cookies, domínio e deploy.
+
+## QA obrigatório para alterações gerais
+
+Depois de qualquer alteração relevante, rode:
+
+```bash
+npm run build
+```
+
+Se possível, rode localmente:
+
+```bash
+npm run dev
+```
+
+Validar manualmente:
+
+```txt
+GET /
+GET /health
+```
+
+Resultado esperado:
+
+- API sobe sem erro.
+- Build TypeScript passa.
+- Healthcheck retorna 200.
+- Nenhuma variável sensível aparece em log ou resposta.
+
+## QA obrigatório para autenticação
+
+Quando alterar autenticação, rode:
+
+```bash
+npm run build
+rg "JWT_SECRET|jwt.sign|jwt.verify|Authorization|Bearer|select\(\"\+senha\"\)|validarSenha" src
+rg "console.log|console.error" src/modules/auth src/middlewares/auth.ts src/utils
+```
+
+Validar manualmente:
+
+- Cadastro com dados válidos.
+- Cadastro com e-mail já existente.
+- Login com credenciais válidas.
+- Login com senha inválida.
+- Login com usuário inexistente.
+- Rota protegida sem token retorna 401.
+- Rota protegida com token inválido retorna 401.
+- Rota protegida com token válido funciona.
+- Respostas não retornam senha nem hash.
+- Logs não exibem token nem senha.
+
+## QA obrigatório para alimentos
+
+Quando alterar alimentos, rode:
+
+```bash
+npm run build
+rg "alimentos|foodName|foodCode|autocomplete|authMiddleware" src/modules/alimentos src/interfaces/alimentos src/database
+```
+
+Validar manualmente:
+
+- `GET /alimentos` sem token retorna 401.
+- `GET /alimentos/autocomplete` sem token retorna 401.
+- `GET /alimentos?foodCode=<codigo>` com token válido retorna alimento quando existir.
+- `GET /alimentos/autocomplete?foodName=<nome>` com token válido retorna lista limitada.
+- Query param vazio retorna erro controlado.
+- Busca sem resultado retorna erro controlado.
+- Não há retorno de dados desnecessários no autocomplete.
+
+## QA obrigatório para Zod
+
+Quando alterar schemas, rotas ou payloads:
+
+```bash
+npm run build
+rg "z.object|safeParse|parse|ZodError|z.infer" src
+```
+
+Validar:
+
+- Body inválido retorna 400.
+- Query inválida retorna 400.
+- Payload JWT inválido retorna 401.
+- Mensagens são úteis, mas não expõem detalhes internos.
+- Tipos TypeScript são inferidos a partir dos schemas quando aplicável.
+
+## Checklist antes de finalizar
+
+Antes de finalizar qualquer alteração, confirme:
+
+- `npm run build` passou.
+- A alteração ficou limitada ao escopo solicitado.
+- Rotas protegidas usam `authMiddleware`.
+- Entradas foram validadas com Zod quando aplicável.
+- Não houve exposição de token, senha, hash ou secrets.
+- Não houve alteração indevida de CORS.
+- Não houve alteração indevida de contrato com o front-end.
+- Não foi adicionada dependência sem necessidade.
+- Não foi feita refatoração ampla sem necessidade.
+- O middleware global de erro continua por último no Express.
+- O projeto continua compatível com Node.js >= 22 e TypeScript strict.
