@@ -143,6 +143,14 @@ Se encontrar problemas não relacionados ao pedido atual, registre no resumo fin
 
 ## Comandos principais
 
+Seguranca basica: `npm run test:security` executa JWT, protecao de dados e
+regressao HTTP contra MongoDB em 127.0.0.1:27017 e Redis em 127.0.0.1:6379.
+O workflow `.github/workflows/security.yml` provisiona esses servicos
+descartaveis automaticamente. Nunca use dados, chaves ou banco de producao.
+Adicione testes unitarios gerais em `tests/*.test.ts` e testes de seguranca
+em `tests/security/*.test.ts`; ambos os comandos descobrem novos arquivos.
+Veja `docs/security-ci.md` para cobertura, limites e checks obrigatorios.
+
 Antes de finalizar qualquer alteração relevante, rode:
 
 ```bash
