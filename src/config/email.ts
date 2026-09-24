@@ -1,17 +1,9 @@
 import { z } from "zod";
+import {
+  IResendConfiguration,
+  IResendConfigurationSchema,
+} from "../interfaces/email/emailInterfaces.js";
 
-const IEmailUserSchema = z.string().trim().toLowerCase().email();
-const IEmailAppPasswordSchema = z
-  .string()
-  .transform((value) => value.replace(/\s/g, ""))
-  .pipe(
-    z
-      .string()
-      .regex(
-        /^[A-Za-z0-9]{16}$/,
-        "EMAIL_APP_PASSWORD deve ser uma senha de app do Google com 16 caracteres.",
-      ),
-  );
 const IFrontendUrlSchema = z
   .url()
   .refine(
@@ -20,25 +12,17 @@ const IFrontendUrlSchema = z
   )
   .transform((value) => value.replace(/\/+$/, ""));
 
-function validarConfiguracaoEmail(
+type ResendConfigurationResult =
+  | { success: true; data: IResendConfiguration }
+  | {
+      success: false;
+      reason: "provider-not-configured" | "invalid-provider-configuration";
+    };
+
+function validarFrontendUrl(
   environment: NodeJS.ProcessEnv = process.env,
 ) {
-  const emailUser = IEmailUserSchema.safeParse(environment.EMAIL_USER);
-  const emailAppPassword = IEmailAppPasswordSchema.safeParse(
-    environment.EMAIL_APP_PASSWORD,
-  );
   const frontendUrl = IFrontendUrlSchema.safeParse(environment.FRONTEND_URL);
-
-  if (!emailUser.success) {
-    throw new Error("EMAIL_USER nao configurado ou invalido.");
-  }
-
-  if (!emailAppPassword.success) {
-    throw new Error(
-      emailAppPassword.error.issues[0]?.message ??
-        "EMAIL_APP_PASSWORD nao configurada ou invalida.",
-    );
-  }
 
   if (!frontendUrl.success) {
     throw new Error("FRONTEND_URL nao configurada ou invalida.");
@@ -51,11 +35,30 @@ function validarConfiguracaoEmail(
     throw new Error("FRONTEND_URL deve usar HTTPS em producao.");
   }
 
-  return {
-    emailUser: emailUser.data,
-    emailAppPassword: emailAppPassword.data,
-    frontendUrl: frontendUrl.data,
-  } as const;
+  return frontendUrl.data;
 }
 
-export { validarConfiguracaoEmail };
+function obterConfiguracaoResend(
+  environment: NodeJS.ProcessEnv = process.env,
+): ResendConfigurationResult {
+  const apiKey = environment.RESEND_API_KEY?.trim();
+  const fromEmail = environment.RESEND_FROM_EMAIL?.trim();
+
+  if (!apiKey || !fromEmail) {
+    return { success: false, reason: "provider-not-configured" };
+  }
+
+  const configuration = IResendConfigurationSchema.safeParse({
+    apiKey,
+    fromEmail,
+    fromName: environment.RESEND_FROM_NAME?.trim() || "Integrale Nutrição",
+  });
+
+  if (!configuration.success) {
+    return { success: false, reason: "invalid-provider-configuration" };
+  }
+
+  return { success: true, data: configuration.data };
+}
+
+export { obterConfiguracaoResend, validarFrontendUrl };

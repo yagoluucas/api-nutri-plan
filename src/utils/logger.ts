@@ -33,6 +33,10 @@ const SENSITIVE_KEYS = new Set([
   "jwtsecret",
   "secret",
   "encryptionkey",
+  "apikey",
+  "resendapikey",
+  "singleuserregistrationsecret",
+  "xregistrationsecret",
   "emailuser",
   "emailapppassword",
   "confirmationtoken",
@@ -63,6 +67,7 @@ const TOKEN_PATTERN = /\bBearer\s+[A-Za-z0-9._~+/-]+=*/gi;
 const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const MONGO_URI_PATTERN = /mongodb(?:\+srv)?:\/\/[^\s"']+/gi;
 const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
+const RESEND_API_KEY_PATTERN = /\bre_[A-Za-z0-9_-]{4,}\b/g;
 
 function normalizeKey(key: string): string {
   return key.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -72,6 +77,7 @@ function redactString(value: string): string {
   const redacted = value
     .replace(TOKEN_PATTERN, `Bearer ${REDACTED}`)
     .replace(JWT_PATTERN, REDACTED)
+    .replace(RESEND_API_KEY_PATTERN, REDACTED)
     .replace(MONGO_URI_PATTERN, REDACTED)
     .replace(EMAIL_PATTERN, REDACTED)
     .replace(/[\r\n\t]+/g, " ");

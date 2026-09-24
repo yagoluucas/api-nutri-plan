@@ -1,29 +1,9 @@
 import crypto from "node:crypto";
-import nodemailer from "nodemailer";
-import { validarConfiguracaoEmail } from "../../config/email.js";
+import { validarFrontendUrl } from "../../config/email.js";
+import { emailService } from "../email/emailService.js";
 
 const EMAIL_CONFIRMATION_TTL_MS = 30 * 60 * 1_000;
 const PENDING_REGISTRATION_RETENTION_MS = 24 * 60 * 60 * 1_000;
-
-let transporter: ReturnType<typeof nodemailer.createTransport> | undefined;
-
-function getEmailTransporter() {
-  if (transporter) {
-    return transporter;
-  }
-
-  const configuration = validarConfiguracaoEmail();
-
-  transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: configuration.emailUser,
-      pass: configuration.emailAppPassword,
-    },
-  });
-
-  return transporter;
-}
 
 function generateConfirmationToken() {
   return crypto.randomBytes(32).toString("base64url");
@@ -42,7 +22,7 @@ function getPendingRegistrationExpiration(from = new Date()) {
 }
 
 function buildConfirmationUrl(token: string) {
-  const { frontendUrl } = validarConfiguracaoEmail();
+  const frontendUrl = validarFrontendUrl();
   const confirmationUrl = new URL("/confirmar-email", frontendUrl);
   confirmationUrl.hash = new URLSearchParams({ token }).toString();
   return confirmationUrl.toString();
@@ -52,11 +32,10 @@ async function sendRegistrationConfirmationEmail(
   recipientEmail: string,
   token: string,
 ) {
-  const configuration = validarConfiguracaoEmail();
   const confirmationUrl = buildConfirmationUrl(token);
 
-  await getEmailTransporter().sendMail({
-    from: configuration.emailUser,
+  await emailService.send({
+    type: "registration-confirmation",
     to: recipientEmail,
     subject: "Confirme seu e-mail no Nutri Plan",
     text: [
