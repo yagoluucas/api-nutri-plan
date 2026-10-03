@@ -1,0 +1,48 @@
+version: 2
+
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    target-branch: "homolog"
+
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "16:00"
+      timezone: "America/Sao_Paulo"
+
+    open-pull-requests-limit: 5
+
+    groups:
+      production-minor-patch:
+        applies-to: version-updates
+        dependency-type: production
+        update-types:
+          - "minor"
+          - "patch"
+      development:
+        applies-to: version-updates
+        dependency-type: development
+        update-types:
+          - "minor"
+          - "patch"
+
+    ignore:
+      - dependency-name: "express"
+        update-types:
+          - "version-update:semver-major"
+
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+
+    labels:
+      - "dependencies"
+      - "npm"
+
+    cooldown:
+      default-days: 3
+      semver-major-days: 14
+      semver-minor-days: 3
+      semver-patch-days: 1
