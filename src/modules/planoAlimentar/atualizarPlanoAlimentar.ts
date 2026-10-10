@@ -65,8 +65,7 @@ async function atualizarPlanoAlimentar(req: Request, next: NextFunction) {
     }
 
     const planoAtual = descriptografarPlanoAlimentar(plano);
-    const { planoAtivo, ...camposPlanoAlimentar } =
-      planoSafe.data.planoAlimentar;
+    const { planoAtivo, ...camposPlanoAlimentar } = planoSafe.data.planoAlimentar;
     const planoAtualizado = IPlanoAlimentarSchema.parse({
       ...planoAtual,
       ...camposPlanoAlimentar,

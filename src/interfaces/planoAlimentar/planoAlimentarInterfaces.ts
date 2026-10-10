@@ -18,6 +18,8 @@ export const IAlimentoPlanoAlimentarSchema = z.object({
   codigoAlimento: z.string({ error: "O codigo do alimento e obrigatorio" }),
   quantidade: z.number().positive("A quantidade deve ser maior que zero"),
   medidaSelecionada: IMedidaSelecionadaPlanoAlimentarSchema,
+  nomeExibicao: z.string().trim().max(60).optional(),
+  quantidadeExibicao: z.string().trim().max(60).optional()
 });
 
 export const IRefeicaoPlanoAlimentarSchema = z.object({
