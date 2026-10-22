@@ -45,7 +45,7 @@ app.use(helmet());
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(globalRateLimiter);
-app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || "3mb" }));
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || "3mb", inflate: false }));
 
 // Apenas para testar o funcionamento da API
 app.get("/", (req, res) => {
