@@ -11,7 +11,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
-        value: "24.14.1"
+        value: "24.22.1"
       - key: JSON_BODY_LIMIT
         value: "1mb"
       - key: CORS_CREDENTIALS
