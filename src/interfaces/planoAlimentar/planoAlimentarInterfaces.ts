@@ -22,6 +22,14 @@ export const IAlimentoPlanoAlimentarSchema = z.object({
   quantidadeExibicao: z.string().trim().max(60).optional()
 });
 
+export const ISubstituicaoPlanoAlimentarSchema = z.object({
+  titulo: z.string().trim().min(1).optional(),
+  observacoes: z.string().optional(),
+  alimentos: z
+    .array(IAlimentoPlanoAlimentarSchema)
+    .min(1, "A substituicao deve ter pelo menos 1 alimento"),
+});
+
 export const IRefeicaoPlanoAlimentarSchema = z.object({
   nome: z.string().trim().min(1, "O nome da refeicao e obrigatorio").max(30),
   horario: z
@@ -34,6 +42,7 @@ export const IRefeicaoPlanoAlimentarSchema = z.object({
   alimentos: z
     .array(IAlimentoPlanoAlimentarSchema)
     .min(1, "A refeicao deve ter pelo menos 1 alimento"),
+  substituicao: ISubstituicaoPlanoAlimentarSchema.optional(),
 });
 
 export const IPlanoAlimentarSchema = z.object({
