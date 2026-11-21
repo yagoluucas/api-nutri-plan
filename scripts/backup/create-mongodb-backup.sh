@@ -5,7 +5,7 @@ set -euo pipefail
 : "${MONGODB_BACKUP_DATABASE:?MONGODB_BACKUP_DATABASE is required}"
 : "${BACKUP_ENCRYPTION_PASSPHRASE:?BACKUP_ENCRYPTION_PASSPHRASE is required}"
 
-MONGO_TOOLS_IMAGE="${MONGO_TOOLS_IMAGE:-mongo:8.0.29-noble}"
+MONGO_TOOLS_IMAGE="${MONGO_TOOLS_IMAGE:-mongo:8.0.38-noble}"
 BACKUP_OUTPUT_DIR="${BACKUP_OUTPUT_DIR:-.backups}"
 
 mkdir -p "$BACKUP_OUTPUT_DIR"
@@ -44,7 +44,7 @@ if [[ ! -s "$archive_path" ]]; then
 fi
 
 echo "Starting disposable MongoDB for restore verification..."
-restore_container_id="$(docker run -d --rm mongo:8.0.29-noble --bind_ip_all)"
+restore_container_id="$(docker run -d "$MONGO_TOOLS_IMAGE" --bind_ip_all)"
 
 for attempt in {1..30}; do
   if docker exec "$restore_container_id" mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok' 2>/dev/null | grep -q '^1$'; then
@@ -53,6 +53,8 @@ for attempt in {1..30}; do
 
   if [[ "$attempt" -eq 30 ]]; then
     echo "Disposable MongoDB did not become ready in time." >&2
+    docker inspect --format 'Container status: {{.State.Status}} (exit code: {{.State.ExitCode}})' "$restore_container_id" >&2 || true
+    docker logs --tail 80 "$restore_container_id" >&2 || true
     exit 1
   fi
 
